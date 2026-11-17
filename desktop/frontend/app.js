@@ -131,6 +131,74 @@
     if (cards[0]) cards[0].innerHTML = `<span class="cur">¥</span>${exp.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
     if (cards[1]) cards[1].innerHTML = `<span class="cur">¥</span>${inc.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
     if (cards[2]) cards[2].innerHTML = `<span class="cur">¥</span>${(inc - exp).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
+    // 支出分类环形图（真实数据）
+    renderDonut(live.filter(x => x.out))
+    // 近 12 个月收支趋势（真实数据）
+    renderTrend(live)
+  }
+
+  function renderTrend(list) {
+    const svg = document.querySelector('#v-overview .chart-svg')
+    if (!svg) return
+    const now = new Date()
+    const months = []
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+    }
+    const buckets = {}
+    months.forEach(m => buckets[m] = { income: 0, expense: 0 })
+    list.forEach(x => {
+      const k = (x.date || '').slice(0, 7)
+      if (buckets[k]) buckets[k][x.out ? 'expense' : 'income'] += toCents(x.amt)
+    })
+    const maxC = Math.max(1, ...months.map(m => Math.max(buckets[m].income, buckets[m].expense)))
+    const pts = key => months.map((m, i) =>
+      `${(i / 11 * 520).toFixed(1)},${(140 - buckets[m][key] / maxC * 110).toFixed(1)}`).join(' ')
+    const incPts = pts('income'), expPts = pts('expense')
+    svg.innerHTML = `
+      <defs><linearGradient id="gi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f9e6b" stop-opacity=".22"/><stop offset="1" stop-color="#2f9e6b" stop-opacity="0"/></linearGradient></defs>
+      <g stroke="var(--sep)" stroke-width="1"><line x1="0" y1="38" x2="520" y2="38"/><line x1="0" y1="80" x2="520" y2="80"/><line x1="0" y1="122" x2="520" y2="122"/></g>
+      <path d="M${incPts.split(' ').join(' L')} L520,150 L0,150Z" fill="url(#gi)"/>
+      <polyline points="${incPts}" fill="none" stroke="#2f9e6b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <polyline points="${expPts}" fill="none" stroke="#c1504a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`
+    const axis = document.querySelector('#v-overview .xaxis')
+    if (axis) axis.innerHTML = months.filter((_, i) => i % 2 === 0).map(m => `<span>${Number(m.slice(5))}月</span>`).join('')
+  }
+
+  const DONUT_COLORS = ['#4f5bd5', '#7c86ff', '#34c759', '#ff9500', '#c1504a', '#af52de', '#32ade6', '#a2845e']
+  function renderDonut(expList) {
+    const byCat = {}
+    expList.forEach(x => { byCat[x.cat] = (byCat[x.cat] || 0) + toCents(x.amt) })
+    const arr = Object.keys(byCat).map(k => {
+      const c = catsOut.concat(catsIn).find(z => z.id === k)
+      return { name: c ? c.n : k, id: k, c: c ? c.c : '#8e8e93', v: toYuan(byCat[k]) }
+    }).sort((a, b) => b.v - a.v)
+    const donut = document.querySelector('#v-overview .donut')
+    const listEl = document.querySelector('#v-overview .cat-list')
+    if (!donut || !listEl) return
+    const total = sumYuan(arr.map(a => a.v))
+    const center = donut.querySelector('.donut-center b')
+    if (center) center.textContent = '¥' + Math.round(total).toLocaleString('zh-CN')
+    if (!arr.length) {
+      donut.style.background = 'var(--surface2)'
+      listEl.innerHTML = '<div style="font-size:12px;color:var(--label3)">本月暂无支出</div>'
+      return
+    }
+    // conic-gradient 按占比连续绘制
+    let acc = 0
+    const stops = []
+    arr.slice(0, 8).forEach((a, i) => {
+      const from = acc / total * 100
+      acc += toCents(a.v)
+      const to = acc / total * 100
+      stops.push(`${DONUT_COLORS[i % DONUT_COLORS.length]} ${from}% ${to}%`)
+    })
+    donut.style.background = `conic-gradient(${stops.join(',')})`
+    listEl.innerHTML = arr.slice(0, 8).map((a, i) => {
+      const pct = Math.round(toCents(a.v) / toCents(total) * 100)
+      return `<div class="cat-row"><i class="dot" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]}"></i><span class="name">${esc(a.name)}</span><span class="amt num">${a.v.toLocaleString('zh-CN')}</span><span class="pct">${pct}%</span></div>`
+    }).join('')
   }
 
   // ---------- 导航 ----------
