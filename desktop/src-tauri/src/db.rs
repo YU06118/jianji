@@ -151,7 +151,7 @@ pub fn set_setting(conn: &Connection, key: &str, value: &str) -> SqlResult<()> {
 }
 
 /// 全量替换（导入 JSON 备份 / 云同步落地）
-pub fn replace_all(conn: &Connection, records: &[Record], categories: &[Category]) -> SqlResult<()> {
+pub fn replace_all(conn: &mut Connection, records: &[Record], categories: &[Category]) -> SqlResult<()> {
     let tx = conn.transaction()?;
     tx.execute("DELETE FROM records", [])?;
     for r in records { upsert_record(&tx, r)?; }
