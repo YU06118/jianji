@@ -42,6 +42,8 @@ jobs:
       - name: Generate & upload latest.json
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONIOENCODING: utf-8
+          PYTHONUTF8: "1"
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
