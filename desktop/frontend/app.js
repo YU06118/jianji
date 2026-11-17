@@ -1,0 +1,315 @@
+/* 简记 · 桌面端前端逻辑
+ * 运行在 Tauri WebView 中：数据走 Rust 命令 → 本机 SQLite（Q20）
+ * 独立浏览器打开时：自动降级到 localStorage，便于无 Rust 环境预览
+ * 金额口径与 shared/core.js 一致：内部用「分」整数运算
+ */
+(function () {
+  'use strict'
+  const IN_TAURI = typeof window !== 'undefined' && !!window.__TAURI_INTERNALS__
+  const invoke = IN_TAURI
+    ? (cmd, args) => window.__TAURI_INTERNALS__.invoke(cmd, args || {})
+    : async () => { throw new Error('not tauri') }
+
+  // ---------- 金额与工具 ----------
+  const toCents = y => Math.round((Number(y) || 0) * 100)
+  const toYuan = c => Math.round(c) / 100
+  const sumYuan = list => toYuan(list.reduce((a, b) => a + toCents(b), 0))
+  const money = n => '¥ ' + (Number(n) || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const uid = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+  const catColor = {}
+
+  // ---------- 预设分类（与 SQLite 初始化一致）----------
+  const PRESET_OUT = [
+    ['food', '🍜', '餐饮', '#4f5bd5'], ['grocery', '🥬', '买菜', '#6FAE5F'], ['daily', '🧴', '日用', '#4FB3A5'],
+    ['clothing', '👗', '服饰', '#E5759B'], ['home', '🏠', '居住', '#7c86ff'], ['transport', '🚇', '交通', '#34c759'],
+    ['medical', '💊', '医疗', '#ff2d55'], ['fun', '🎬', '娱乐', '#AF52DE'], ['study', '📚', '学习', '#32ADE6'], ['other', '📦', '其他', '#A79DA2']
+  ]
+  const PRESET_IN = [
+    ['salary', '💰', '工资', '#34C759'], ['bonus', '🎁', '奖金', '#FFCC00'], ['redpack', '🧧', '红包', '#D9736E'], ['other_in', '📥', '其他', '#A79DA2']
+  ]
+  let catsOut = PRESET_OUT.map(([id, e, n, c]) => ({ id, e, n, c })),
+      catsIn = PRESET_IN.map(([id, e, n, c]) => ({ id, e, n, c }))
+  PRESET_OUT.concat(PRESET_IN).forEach(([id, , , c]) => catColor[id] = c)
+
+  // ---------- 数据层 ----------
+  let txs = []          // UI 形态：{id,ic,bg,n,note,amt,out,t,ts,date,cat,image,deleted,_i}
+  let pendingImage = null
+
+  function fromRecord(r) {
+    const d = new Date(r.ts || Date.now())
+    const c = catColor[r.cat] || '#8e8e93'
+    const cat = catsOut.concat(catsIn).find(x => x.id === r.cat)
+    return {
+      id: r.id, cat: r.cat, date: r.date, ts: r.ts, image: r.image || '', deleted: !!r.deleted,
+      ic: cat ? cat.e : '📦', bg: c + '1f',
+      n: r.note || (cat ? cat.n : '未分类'), note: r.note || '',
+      amt: toYuan(r.amount), out: r.kind === 'expense',
+      t: `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    }
+  }
+  function toRecord(x) {
+    return {
+      id: x.id || uid(), kind: x.out ? 'expense' : 'income', amount: toCents(x.amt),
+      cat: x.cat || 'other', note: x.note || '', date: x.date || new Date().toISOString().slice(0, 10),
+      ts: x.ts || Date.now(), image: x.image || '', deleted: x.deleted ? 1 : 0
+    }
+  }
+
+  // localStorage 降级实现
+  const LS = {
+    get() { try { return JSON.parse(localStorage.getItem('jianji_records') || '[]') } catch (e) { return [] } },
+    set(list) { localStorage.setItem('jianji_records', JSON.stringify(list)) }
+  }
+
+  async function loadRecords() {
+    if (IN_TAURI) {
+      const rows = await invoke('list_records', { includeDeleted: 1 })
+      txs = rows.map(fromRecord)
+    } else {
+      let list = LS.get()
+      if (!list.length) {
+        // 演示数据（仅预览用，首次写入本地）
+        list = [
+          { id: uid(), kind: 'expense', amount: 3850, cat: 'food', note: '午餐 · 公司附近', date: '2026-11-17', ts: Date.now() - 3600000, image: '', deleted: 0 },
+          { id: uid(), kind: 'expense', amount: 1200, cat: 'transport', note: '地铁通勤', date: '2026-11-17', ts: Date.now() - 7200000, image: '', deleted: 0 },
+          { id: uid(), kind: 'income', amount: 1280000, cat: 'salary', note: '11月工资', date: '2026-11-15', ts: Date.now() - 86400000 * 2, image: '', deleted: 0 },
+          { id: uid(), kind: 'expense', amount: 320000, cat: 'home', note: '房租', date: '2026-11-05', ts: Date.now() - 86400000 * 12, image: '', deleted: 0 }
+        ]
+        LS.set(list)
+      }
+      txs = list.map(fromRecord)
+    }
+    render()
+  }
+  async function saveRecord(rec) {
+    if (IN_TAURI) await invoke('save_record', { record: toRecord(rec) })
+    else {
+      const list = LS.get(), idx = list.findIndex(r => r.id === rec.id)
+      const row = toRecord(rec)
+      if (idx >= 0) list[idx] = row; else list.unshift(row)
+      LS.set(list)
+    }
+  }
+  async function trashRecord(id, deleted) {
+    if (IN_TAURI) await invoke('trash_record', { id, deleted })
+    else {
+      const list = LS.get().map(r => r.id === id ? Object.assign({}, r, { deleted }) : r)
+      LS.set(list)
+    }
+    await loadRecords()
+  }
+
+  // ---------- 渲染 ----------
+  function txRow(x, del) {
+    return `<div class="tx"><div class="ic" style="background:${x.bg}">${x.ic}</div>
+      <div class="meta"><b>${esc(x.n)}</b><span>${x.t} · ${esc(x.note)}</span></div>
+      ${x.image ? '<div class="thumb" title="含小票图片">▧</div>' : ''}
+      <div class="money ${x.out ? 'out' : 'in'}">${x.out ? '−' : '+'} ${money(x.amt)}</div>
+      ${del ? `<button class="del" title="删除" data-id="${x.id}">✕</button>` : ''}</div>`
+  }
+  function groupByDate(list, del) {
+    if (!list.length) return '<div style="padding:24px;text-align:center;color:var(--label3);font-size:13px">暂无记录</div>'
+    const groups = {}
+    list.forEach(x => { const k = x.date; (groups[k] = groups[k] || []).push(x) })
+    return Object.keys(groups).sort().reverse().map(k =>
+      `<div class="date-group"><div class="date-label"><span>${k}</span><span>${groups[k].length} 笔</span></div>${groups[k].map(x => txRow(x, del)).join('')}</div>`
+    ).join('')
+  }
+  function render() {
+    const live = txs.filter(x => !x.deleted)
+    txs.forEach((x, i) => x._i = i)
+    document.getElementById('recentList').innerHTML = groupByDate(live.slice(0, 5), false)
+    document.getElementById('fullList').innerHTML = groupByDate(txs, true)
+    document.getElementById('txCount').textContent = live.length
+    // 绑定删除按钮
+    document.querySelectorAll('#fullList .del').forEach(b => b.onclick = () => trashRecord(b.dataset.id, 1))
+    // 汇总
+    const inc = sumYuan(live.filter(x => !x.out).map(x => x.amt))
+    const exp = sumYuan(live.filter(x => x.out).map(x => x.amt))
+    const cards = document.querySelectorAll('#v-overview .card .v')
+    if (cards[0]) cards[0].innerHTML = `<span class="cur">¥</span>${exp.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
+    if (cards[1]) cards[1].innerHTML = `<span class="cur">¥</span>${inc.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
+    if (cards[2]) cards[2].innerHTML = `<span class="cur">¥</span>${(inc - exp).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
+  }
+
+  // ---------- 导航 ----------
+  document.querySelectorAll('.nav button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.nav button').forEach(x => x.classList.remove('active'))
+    b.classList.add('active')
+    const v = b.dataset.v
+    document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id === 'v-' + v))
+    document.querySelector('.content').scrollTop = 0
+    if (v === 'stats') renderStats()
+    if (v === 'cats') renderCats()
+  })
+  document.querySelectorAll('.link[data-go]').forEach(e => e.onclick = () =>
+    document.querySelector(`.nav button[data-v="${e.dataset.go}"]`).click())
+  document.querySelectorAll('#segTime button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#segTime button').forEach(x => x.classList.remove('on'))
+    b.classList.add('on'); renderStats()
+  })
+  // 检索 chips（Q11）
+  let activeFilter = '全部'
+  document.querySelectorAll('.chips .chip').forEach(c => c.onclick = () => {
+    document.querySelectorAll('.chips .chip').forEach(x => x.classList.remove('on'))
+    c.classList.add('on'); activeFilter = c.textContent
+    let list = txs
+    if (activeFilter === '支出') list = txs.filter(x => x.out)
+    if (activeFilter === '收入') list = txs.filter(x => !x.out)
+    document.getElementById('fullList').innerHTML = groupByDate(list, true)
+    document.querySelectorAll('#fullList .del').forEach(b => b.onclick = () => trashRecord(b.dataset.id, 1))
+  })
+  document.querySelector('.search').onclick = () => {
+    const kw = prompt('输入备注关键词搜索：')
+    if (!kw) return
+    const list = txs.filter(x => (x.note || '').toLowerCase().includes(kw.toLowerCase()))
+    document.getElementById('fullList').innerHTML = groupByDate(list, true)
+    document.querySelectorAll('#fullList .del').forEach(b => b.onclick = () => trashRecord(b.dataset.id, 1))
+    document.querySelector('.nav button[data-v="list"]').click()
+  }
+
+  // ---------- 统计（Q9/Q10）----------
+  function renderStats() {
+    const live = txs.filter(x => !x.deleted)
+    const dim = (document.querySelector('#segTime button.on') || {}).textContent || '月'
+    let list = live
+    if (dim === '月') { const ym = new Date().toISOString().slice(0, 7); list = live.filter(x => x.date.startsWith(ym)) }
+    else if (dim === '年') { const y = new Date().getFullYear(); list = live.filter(x => x.date.startsWith(String(y))) }
+    else if (dim === '近3年') { const y = new Date().getFullYear() - 2; list = live.filter(x => +x.date.slice(0, 4) >= y) }
+    else if (dim === '近5年') { const y = new Date().getFullYear() - 4; list = live.filter(x => +x.date.slice(0, 4) >= y) }
+    const byCat = {}
+    list.filter(x => x.out).forEach(x => byCat[x.cat] = (byCat[x.cat] || 0) + toCents(x.amt))
+    const arr = Object.keys(byCat).map(k => {
+      const c = catsOut.concat(catsIn).find(z => z.id === k)
+      return { name: c ? c.n : k, v: toYuan(byCat[k]) }
+    }).sort((a, b) => b.v - a.v)
+    const max = arr.length ? arr[0].v : 1
+    document.getElementById('barChart').innerHTML = arr.length ? arr.map(b =>
+      `<div style="display:flex;align-items:center;gap:12px;margin:9px 0">
+        <span style="width:44px;font-size:12px;color:var(--label2)">${esc(b.name)}</span>
+        <div style="flex:1;background:rgba(120,120,140,.10);border-radius:6px;height:16px;overflow:hidden">
+          <div style="width:${b.v / max * 100}%;height:100%;border-radius:6px;background:linear-gradient(90deg,#4f5bd5,#7c86ff);transition:width .7s var(--ease-spring)"></div></div>
+        <span class="num" style="width:70px;text-align:right;font-size:13px;font-weight:600">${money(b.v)}</span>
+      </div>`).join('') : '<div style="color:var(--label3);font-size:13px;padding:12px">该时间段暂无支出</div>'
+    // 热力（当日支出）
+    const heat = {}
+    list.filter(x => x.out).forEach(x => heat[x.date] = (heat[x.date] || 0) + x.amt)
+    const maxH = Math.max(1, ...Object.values(heat))
+    let html = ''
+    for (let i = 0; i < 126; i++) {
+      const d = new Date(); d.setDate(d.getDate() - (125 - i))
+      const key = d.toISOString().slice(0, 10)
+      const v = heat[key] || 0
+      const a = v ? 0.15 + 0.65 * (v / maxH) : 0.06
+      html += `<i style="background:rgba(79,91,213,${a.toFixed(2)})" title="${key} ${v ? money(v) : '无支出'}"></i>`
+    }
+    document.getElementById('heat').innerHTML = html
+  }
+
+  // ---------- 分类管理（Q5）----------
+  function renderCats() {
+    document.getElementById('catGridOut').innerHTML = catsOut.map(c =>
+      `<div class="catcard"><div class="e" style="background:${c.c}1c">${c.e}</div><b>${esc(c.n)}</b><span>点击编辑</span></div>`).join('')
+    document.getElementById('catGridIn').innerHTML = catsIn.map(c =>
+      `<div class="catcard"><div class="e" style="background:${c.c}1c">${c.e}</div><b>${esc(c.n)}</b><span>点击编辑</span></div>`).join('')
+  }
+
+  // ---------- 记一笔（Q3/Q4）----------
+  let curAmt = '0', curType = 'out', curCat = 0
+  const amtEl = document.getElementById('amt')
+  const updAmt = () => amtEl.textContent = curAmt || '0'
+  function renderPick() {
+    const list = curType === 'out' ? catsOut : catsIn
+    document.getElementById('pickcat').innerHTML = list.map((c, i) =>
+      `<div class="pc ${i === curCat ? 'on' : ''}" data-i="${i}"><div class="e" style="background:${c.c}22">${c.e}</div><span>${esc(c.n)}</span></div>`).join('')
+    document.querySelectorAll('.pc').forEach(p => p.onclick = () => { curCat = +p.dataset.i; renderPick() })
+  }
+  renderPick()
+  document.getElementById('addBtn').onclick = () => {
+    document.getElementById('backdrop').classList.add('show')
+    curAmt = '0'; pendingImage = null; updAmt()
+    setTimeout(() => document.getElementById('note').focus(), 300)
+  }
+  document.getElementById('backdrop').onclick = e => { if (e.target.id === 'backdrop') document.getElementById('backdrop').classList.remove('show') }
+  document.querySelectorAll('#segType button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#segType button').forEach(x => x.classList.remove('on'))
+    b.classList.add('on'); curType = b.textContent === '支出' ? 'out' : 'in'; curCat = 0; renderPick()
+  })
+  document.querySelectorAll('#keypad button').forEach(b => b.onclick = async () => {
+    const t = b.textContent
+    if (/^\d$/.test(t)) { curAmt = curAmt === '0' ? t : curAmt + t; if (curAmt.length > 8) curAmt = curAmt.slice(0, 8) }
+    else if (t === '.') { if (!curAmt.includes('.')) curAmt += '.' }
+    else if (t === '⌫') { curAmt = curAmt.slice(0, -1) || '0' }
+    else if (t === '清空') { curAmt = '0' }
+    else if (t === '▣') { await pickImage(); return }
+    else if (t === '完成') { await commit(); return }
+    updAmt()
+  })
+  async function pickImage() {
+    if (!IN_TAURI) { toast('小票图片需 Tauri 环境'); return }
+    try {
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      const p = await open({ multiple: false, filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })
+      if (!p) return
+      pendingImage = await invoke('save_image', { srcPath: p, name: 'receipt_' + Date.now() + '.png' })
+      toast('小票图片已保存到本地')
+    } catch (e) { toast('选择图片失败：' + e) }
+  }
+  async function commit() {
+    const v = parseFloat(curAmt)
+    if (!v || v <= 0) { toast('请输入金额'); return }
+    const list = curType === 'out' ? catsOut : catsIn, c = list[curCat]
+    const d = new Date()
+    const x = {
+      cat: c.id, ic: c.e, bg: c.c + '1f', out: curType === 'out', amt: v,
+      note: document.getElementById('note').value || c.n, image: pendingImage || '',
+      date: d.toISOString().slice(0, 10), ts: d.getTime(), deleted: false
+    }
+    await saveRecord(x)
+    document.getElementById('note').value = ''
+    document.getElementById('backdrop').classList.remove('show')
+    await loadRecords()
+    toast((curType === 'out' ? '支出 ' : '收入 ') + money(v) + ' 已记录')
+  }
+
+  // ---------- 导出 / 备份（Q12/Q22）----------
+  async function downloadText(name, text, mime) {
+    if (IN_TAURI) {
+      try {
+        const { save } = await import('@tauri-apps/plugin-dialog')
+        const { writeTextFile } = await import('@tauri-apps/plugin-fs')
+        const path = await save({ defaultPath: name })
+        if (path) { await writeTextFile(path, text); toast('已保存到 ' + path); return }
+      } catch (e) { /* fall through */ }
+    }
+    const blob = new Blob([text], { type: mime || 'text/plain;charset=utf-8' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click()
+    URL.revokeObjectURL(a.href)
+  }
+  function buildCSV() {
+    const live = txs.filter(x => !x.deleted)
+    const escCsv = v => { let s = String(v == null ? '' : v); if (/^[=+\-@]/.test(s)) s = "'" + s; if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"'; return s }
+    const rows = [['日期', '类型', '分类', '金额', '备注'].join(',')]
+    live.forEach(x => {
+      const c = catsOut.concat(catsIn).find(z => z.id === x.cat)
+      rows.push([x.date, x.out ? '支出' : '收入', c ? c.n : x.cat, x.amt.toFixed(2), x.note].map(escCsv).join(','))
+    })
+    return rows.join('\r\n')
+  }
+  document.querySelectorAll('.setrow').forEach(row => {
+    if (row.textContent.includes('导出数据')) row.querySelector('.link').onclick = async () => {
+      await downloadText('简记-流水.csv', buildCSV(), 'text/csv;charset=utf-8'); toast('CSV 已导出')
+    }
+  })
+
+  // toast
+  let tt
+  function toast(msg) {
+    const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show')
+    clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2000)
+  }
+
+  // 启动
+  loadRecords()
+})()
