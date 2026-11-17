@@ -1,0 +1,72 @@
+name: Release
+# 推送 v* 标签触发：构建 → minisign 签名 → 创建 Release（含 latest.json）→ 同步腾讯 COS 镜像
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install frontend deps
+        run: npm install
+        working-directory: desktop
+
+      - name: Build & sign & publish Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: desktop
+          tagName: v__VERSION__
+          releaseName: '简记 v__VERSION__'
+          releaseBody: '下载 简记_x.y.z_x64-setup.exe 安装；更新签名 minisign 公钥内置于应用。已安装旧版本的用户将收到应用内自动更新。'
+          releaseDraft: false
+          prerelease: false
+          updaterJsonPreferNsis: true
+
+      # ---------- 同步镜像到腾讯 COS（Secrets 未配置时自动跳过）----------
+      - name: Sync mirror to Tencent COS
+        env:
+          COS_SECRET_ID: ${{ secrets.COS_SECRET_ID }}
+          COS_SECRET_KEY: ${{ secrets.COS_SECRET_KEY }}
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}        # 形如 jianji-releases-125xxxxxxx
+          COS_REGION: ${{ secrets.COS_REGION }}        # 形如 ap-guangzhou
+        if: env.COS_SECRET_ID != '' && env.COS_SECRET_KEY != '' && env.COS_BUCKET != '' && env.COS_REGION != ''
+        shell: bash
+        run: |
+          pip install coscmd
+          mkdir -p mirror
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" -p "latest.json" -D mirror
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" -p "*-setup.exe" -D mirror
+          python - << 'PY'
+          import json, os, glob
+          bucket, region = os.environ['COS_BUCKET'], os.environ['COS_REGION']
+          p = 'mirror/latest.json'
+          d = json.load(open(p, encoding='utf-8'))
+          w = d['platforms']['windows-x86_64']
+          # GitHub Release URL -> COS URL；安装包文件名改 ASCII
+          exe = glob.glob('mirror/*-setup.exe')[0]
+          ascii_name = exe.replace('简记_', 'jianji_')
+          os.rename(exe, ascii_name)
+          w['url'] = f'https://{bucket}.cos.{region}.myqcloud.com/{os.path.basename(ascii_name)}'
+          json.dump(d, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
+          print('mirror latest.json:', json.dumps(w, ensure_ascii=False))
+          PY
+          coscmd config -a "$COS_SECRET_ID" -s "$COS_SECRET_KEY" -b "$COS_BUCKET" -r "$COS_REGION"
+          coscmd upload "mirror/jianji_*_x64-setup.exe" /
+          coscmd upload -H "Cache-Control: max-age=300" "mirror/latest.json" latest.json
+          echo "mirror synced"
