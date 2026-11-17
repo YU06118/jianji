@@ -1,0 +1,350 @@
+/* app.wxss —— 全局设计系统 v2
+ * ---------------------------------------------------------------------------
+ * 目标人群：25–31 岁年轻妈妈（95 后为主）
+ * 设计判断（详见 设计规范.md）：
+ *   她们的参考系不是"母婴 App"，是小红书 / 小宇宙 / Flomo。
+ *   要的是「干净、松弛、有一点质感」，不是「粉、甜、花」。
+ *   → 大面积奶油白打底，彩色只做点缀；降饱和一档；留白给足；字号对比拉开。
+ * 换色不换名：旧的 --pink / --mint 等名字保留，只调值，
+ *   这样所有页面 wxss 自动继承新视觉，零改动、零遗漏。
+ * --------------------------------------------------------------------------- */
+
+page {
+  /* ---------- 底色：奶油白系（不是粉底，也不是冷白） ---------- */
+  --bg: #F2F2F7;          /* systemGray6 分组底 */
+  --bg-2: #E9E9EE;
+  --card: #FFFFFF;
+  --line: #E5E5EA;        /* separator */
+  --line-2: #D1D1D6;
+
+  /* ---------- 品牌 · 冷靛蓝（少量强调色，Apple HIG） ---------- */
+  --pink: #4F5BD5;
+  --pink-deep: #3C46B8;
+  --pink-soft: #EDEEFC;
+  --pink-mist: #F6F7FE;
+
+  /* ---------- 辅助 ---------- */
+  --lilac: #7C86FF;
+  --lilac-soft: #EEF0FF;
+
+  /* ---------- 状态色：支出红 / 收入绿 ---------- */
+  --mint: #2F9E6B;
+  --mint-soft: #E7F5EE;
+  --amber: #C88A2E;
+  --amber-soft: #FBF2E3;
+  --danger: #C1504A;
+  --danger-soft: #FBEAE9;
+
+  /* ---------- 文字：systemLabel 四级 ---------- */
+  --ink: #1D1D1F;
+  --ink-2: rgba(60,60,67,.60);
+  --ink-3: rgba(60,60,67,.30);
+
+  /* ---------- 圆角 / 阴影 / 缓动（HIG 弹簧） ---------- */
+  --r-card: 20rpx;
+  --r-chip: 16rpx;
+  --r-full: 999rpx;
+  --sh-card: 0 2rpx 10rpx rgba(20,24,40,.04), 0 12rpx 32rpx rgba(20,24,40,.06);
+  --sh-pop: 0 10rpx 26rpx rgba(79, 91, 213, .26);
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  --bounce: cubic-bezier(.22, 1.2, .36, 1);
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+view, text, input, textarea, scroll-view, button {
+  box-sizing: border-box;
+}
+
+/* =========================================================================
+   主题色：四套预设，只改品牌色一族（辅助色与状态色不动，保证语义稳定）
+   页面根节点绑 class="page {{theme}}"，取值 t-pink / t-lilac / t-blue / t-matcha
+   ========================================================================= */
+/* 默认主题也显式写出来：这样主题选择器里的色卡能各自显示自己的颜色，
+   不会因为继承父级主题而全部变成同一个色 */
+.t-pink {   /* 默认 · 冷靛蓝 */
+  --pink: #4F5BD5;
+  --pink-deep: #3C46B8;
+  --pink-soft: #EDEEFC;
+  --pink-mist: #F6F7FE;
+  --sh-pop: 0 10rpx 26rpx rgba(79, 91, 213, .26);
+}
+.t-lilac {  /* 石墨蓝 */
+  --pink: #5B6E8F;
+  --pink-deep: #43536E;
+  --pink-soft: #EDF0F5;
+  --pink-mist: #F6F8FB;
+  --sh-pop: 0 10rpx 26rpx rgba(91, 110, 143, .26);
+}
+.t-blue {   /* 海蓝 */
+  --pink: #2F7FA8;
+  --pink-deep: #246484;
+  --pink-soft: #E7F2F8;
+  --pink-mist: #F3F9FC;
+  --sh-pop: 0 10rpx 26rpx rgba(47, 127, 168, .26);
+}
+.t-matcha { /* 冷杉绿 */
+  --pink: #2F9E6B;
+  --pink-deep: #247C53;
+  --pink-soft: #E7F5EE;
+  --pink-mist: #F3FAF6;
+  --sh-pop: 0 10rpx 26rpx rgba(47, 158, 107, .26);
+}
+
+/* ---------- 布局 ---------- */
+.page {
+  min-height: 100vh;
+  padding-bottom: 60rpx;
+}
+.wrap { padding: 0 28rpx; }
+.row { display: flex; align-items: center; }
+.row-between { display: flex; align-items: center; justify-content: space-between; }
+.row-center { display: flex; align-items: center; justify-content: center; }
+.col { display: flex; flex-direction: column; }
+.flex-1 { flex: 1; min-width: 0; }
+.gap-8 { gap: 16rpx; }
+
+/* ---------- 卡片 ---------- */
+.card {
+  background: var(--card);
+  border-radius: var(--r-card);
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: var(--sh-card);
+}
+.card-flat {
+  background: var(--card);
+  border-radius: var(--r-card);
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  border: 2rpx solid var(--line);
+}
+.card-tap { transition: transform .18s var(--ease), box-shadow .18s var(--ease); }
+.card-tap.tap-on {
+  transform: scale(.982);
+  box-shadow: 0 2rpx 8rpx rgba(90, 70, 75, .05);
+}
+.card-title { font-size: 30rpx; font-weight: 600; color: var(--ink); margin-bottom: 8rpx; }
+.card-sub { font-size: 24rpx; color: var(--ink-3); }
+
+/* ---------- 文字 ---------- */
+.t-hero { font-size: 76rpx; font-weight: 700; letter-spacing: -2rpx; line-height: 1.1; }
+.t-xl { font-size: 40rpx; font-weight: 700; }
+.t-lg { font-size: 34rpx; font-weight: 600; }
+.t-md { font-size: 29rpx; font-weight: 500; }
+.t-sm { font-size: 25rpx; }
+.t-xs { font-size: 22rpx; }
+.bold { font-weight: 600; }
+.muted { color: var(--ink-3); }
+.muted-2 { color: var(--ink-2); }
+.num {
+  font-family: "DIN Alternate", "SF Pro Display", -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ---------- 按钮：带轻微回弹（95 后对"手感"极敏感） ---------- */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 92rpx;
+  border-radius: var(--r-full);
+  font-size: 30rpx;
+  font-weight: 600;
+  transition: transform .16s var(--bounce), opacity .16s var(--ease), box-shadow .16s var(--ease);
+}
+.btn.tap-on { transform: scale(.955); opacity: .9; }
+.btn-primary {
+  background: linear-gradient(135deg, rgba(255, 255, 255, .22) 0%, rgba(255, 255, 255, 0) 42%), var(--pink);
+  color: #fff;
+  box-shadow: var(--sh-pop);
+}
+.btn-primary.tap-on { box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, .10); }
+.btn-ghost { background: var(--pink-mist); color: var(--pink-deep); }
+.btn-plain { background: var(--bg-2); color: var(--ink-2); }
+.btn-sm { height: 64rpx; border-radius: var(--r-full); font-size: 26rpx; padding: 0 28rpx; }
+.btn-danger { background: var(--danger-soft); color: var(--danger); }
+.btn-block { width: 100%; }
+
+/* ---------- 分段控件（时间范围 / 收支切换） ---------- */
+.seg {
+  display: flex;
+  padding: 5rpx;
+  background: var(--bg-2);
+  border-radius: var(--r-full);
+}
+.seg-item {
+  flex: 1;
+  height: 62rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: var(--ink-2);
+  border-radius: var(--r-full);
+  transition: all .22s var(--ease);
+}
+.seg-item.on {
+  background: #fff;
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(90, 70, 75, .08);
+}
+
+/* ---------- 胶囊标签 ---------- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 18rpx;
+  border-radius: var(--r-chip);
+  font-size: 22rpx;
+  font-weight: 500;
+}
+.pill-ok { background: var(--mint-soft); color: #2E8F77; }
+.pill-warn { background: var(--amber-soft); color: #B87A18; }
+.pill-over { background: var(--danger-soft); color: #C93B38; }
+.pill-plain { background: var(--bg-2); color: var(--ink-2); }
+.pill-brand { background: var(--pink-soft); color: var(--pink-deep); }
+.pill-lilac { background: var(--lilac-soft); color: #6F58AE; }
+
+/* ---------- 进度条 ---------- */
+.bar { height: 16rpx; border-radius: 8rpx; background: rgba(255, 255, 255, .45); overflow: hidden; }
+.bar-dark { background: var(--bg-2); }
+.bar-fill {
+  height: 100%;
+  border-radius: 8rpx;
+  background: #fff;
+  transition: width .5s var(--ease);
+}
+.bar-fill.ok { background: linear-gradient(90deg, #7ED4BB, var(--mint)); }
+.bar-fill.warn { background: linear-gradient(90deg, #F2BE70, var(--amber)); }
+.bar-fill.over { background: linear-gradient(90deg, #F28F89, var(--danger)); }
+.bar-fill.brand { background: linear-gradient(90deg, rgba(255, 255, 255, .5), #fff); }
+
+/* ---------- 分割线 ---------- */
+.hr { height: 2rpx; background: var(--line); margin: 24rpx 0; }
+
+/* ---------- 空状态 ---------- */
+.empty { padding: 100rpx 40rpx; text-align: center; color: var(--ink-3); }
+.empty-emoji { font-size: 96rpx; line-height: 1; margin-bottom: 24rpx; display: block; }
+.empty-txt { font-size: 27rpx; line-height: 1.7; }
+
+/* ---------- 表单 ---------- */
+.field { display: flex; align-items: center; min-height: 100rpx; border-bottom: 2rpx solid var(--line); }
+.field:last-child { border-bottom: none; }
+.field-label { width: 190rpx; font-size: 28rpx; color: var(--ink-2); flex-shrink: 0; }
+.field-input { flex: 1; font-size: 30rpx; color: var(--ink); text-align: right; }
+.field-input.left { text-align: left; }
+.field-unit { font-size: 26rpx; color: var(--ink-3); margin-left: 10rpx; }
+
+/* ---------- 列表行 ---------- */
+.list { background: var(--card); border-radius: var(--r-card); overflow: hidden; box-shadow: var(--sh-card); }
+.list-row {
+  display: flex;
+  align-items: center;
+  min-height: 104rpx;
+  padding: 0 30rpx;
+  border-bottom: 2rpx solid var(--line);
+  transition: background .16s var(--ease);
+}
+.list-row:last-child { border-bottom: none; }
+.list-row.tap-on { background: var(--bg-2); }
+.list-row-label { flex: 1; font-size: 29rpx; }
+.list-row-value { font-size: 27rpx; color: var(--ink-3); }
+.chev { color: #C8BEC2; font-size: 30rpx; margin-left: 10rpx; }
+
+/* ---------- 图标圆底 ---------- */
+.ico {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38rpx;
+  flex-shrink: 0;
+}
+
+/* ---------- 底部弹层（小程序的"半屏抽屉"） ---------- */
+.sheet-mask {
+  position: fixed;
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(58, 51, 54, .38);
+  z-index: 90;
+  opacity: 0;
+  transition: opacity .22s var(--ease);
+}
+.sheet-mask.show { opacity: 1; }
+.sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 91;
+  background: var(--card);
+  border-radius: 36rpx 36rpx 0 0;
+  padding: 32rpx 32rpx 0;
+  transform: translateY(100%);
+  transition: transform .3s var(--ease);
+  padding-bottom: calc(32rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+}
+.sheet.show { transform: translateY(0); }
+.sheet-handle {
+  width: 72rpx;
+  height: 8rpx;
+  border-radius: 4rpx;
+  background: var(--line-2);
+  margin: 0 auto 24rpx;
+}
+
+/* ---------- 骨架屏（比 loading 转圈更有质感） ---------- */
+.sk {
+  background: linear-gradient(90deg, var(--bg-2) 25%, #FAF6F4 37%, var(--bg-2) 63%);
+  background-size: 400% 100%;
+  animation: sk-shine 1.3s ease-in-out infinite;
+  border-radius: 12rpx;
+}
+.sk-line { height: 26rpx; margin-bottom: 16rpx; }
+.sk-line.w60 { width: 60%; }
+.sk-line.w40 { width: 40%; }
+@keyframes sk-shine {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* ---------- 点头像 / 心情贴纸 ---------- */
+.avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 34rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42rpx;
+  background: var(--pink-soft);
+}
+
+/* ---------- 安全区 ---------- */
+.safe-bottom {
+  padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+/* ---------- 动画 ---------- */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: rise .34s var(--ease) both; }
+.rise-2 { animation: rise .34s var(--ease) .06s both; }
+.rise-3 { animation: rise .34s var(--ease) .12s both; }
+
+/* 尊重系统「减弱动态效果」设置 */
+@media (prefers-reduced-motion: reduce) {
+  .rise, .rise-2, .rise-3, .sk, .bar-fill, .btn, .card-tap { animation: none !important; transition: none !important; }
+}

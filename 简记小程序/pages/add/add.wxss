@@ -1,0 +1,255 @@
+.add-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #FBF8F6;
+  overflow: hidden;
+}
+
+/* ========== 顶部 ========== */
+.head {
+  flex-shrink: 0;
+  padding: 22rpx 28rpx 26rpx;
+  background: linear-gradient(180deg, #FEF5F8 0%, #FDFBFA 100%);
+  border-radius: 0 0 34rpx 34rpx;
+  box-shadow: 0 6rpx 20rpx rgba(214, 158, 168, 0.08);
+}
+
+.seg {
+  display: inline-flex;
+  background: #F1EAE6;
+  border-radius: 34rpx;
+  padding: 6rpx;
+}
+.seg-i {
+  padding: 10rpx 34rpx;
+  border-radius: 28rpx;
+  font-size: 26rpx;
+  color: #6E6569;
+  transition: all .18s;
+}
+.seg-i.on {
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 4rpx 12rpx rgba(239, 84, 120, 0.22);
+}
+
+.amt-row {
+  display: flex;
+  align-items: baseline;
+  margin-top: 22rpx;
+  min-height: 108rpx;
+}
+.cur {
+  font-size: 42rpx;
+  font-weight: 700;
+  margin-right: 10rpx;
+  flex-shrink: 0;
+}
+.amt {
+  font-size: 88rpx;
+  font-weight: 700;
+  letter-spacing: -2rpx;
+  line-height: 1;
+  max-width: 460rpx;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.amt.dim {
+  color: #CFC5C9;
+}
+.caret {
+  width: 5rpx;
+  height: 60rpx;
+  background: #EE7396;
+  border-radius: 3rpx;
+  margin-left: 8rpx;
+  align-self: center;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.12; }
+}
+.caret.blink {
+  animation: blink 1.05s ease-in-out infinite;
+}
+
+.cat-badge {
+  margin-left: auto;
+  align-self: center;
+  padding: 10rpx 22rpx;
+  border-radius: 26rpx;
+  font-size: 25rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  margin-top: 22rpx;
+}
+.meta-pill {
+  background: #F5F0EC;
+  border-radius: 24rpx;
+  padding: 14rpx 22rpx;
+  font-size: 25rpx;
+  color: #6E6569;
+  flex-shrink: 0;
+  margin-right: 14rpx;
+}
+.note-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #F5F0EC;
+  border-radius: 24rpx;
+  padding: 0 20rpx;
+  min-width: 0;
+}
+.note-input {
+  flex: 1;
+  height: 66rpx;
+  font-size: 26rpx;
+  color: #3A3336;
+  min-width: 0;
+}
+.ph {
+  color: #C4BABF;
+  font-size: 25rpx;
+}
+.note-clear {
+  width: 44rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #B9AFB4;
+  font-size: 26rpx;
+  flex-shrink: 0;
+}
+
+/* ========== 中部 ========== */
+.mid {
+  flex: 1;
+  height: 0;
+  overflow: hidden;
+}
+
+.sec {
+  padding: 26rpx 28rpx 0;
+}
+.sec-t {
+  display: flex;
+  align-items: center;
+  font-size: 25rpx;
+  color: #6E6569;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+.sec-hint {
+  margin-left: 14rpx;
+  font-size: 22rpx;
+  color: #A79DA2;
+  font-weight: 400;
+}
+.sec-hint.auto {
+  color: #4CBFA3;
+}
+
+/* 常用标签 */
+.quick-scroll {
+  white-space: nowrap;
+  width: 100%;
+}
+.quick-wrap {
+  display: inline-flex;
+  padding-bottom: 10rpx;
+}
+.quick {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 148rpx;
+  padding: 20rpx 22rpx;
+  background: #FFFFFF;
+  border: 2rpx solid #F0E9E5;
+  border-radius: 24rpx;
+  margin-right: 16rpx;
+  box-shadow: 0 2rpx 10rpx rgba(214, 158, 168, 0.07);
+}
+.quick-on {
+  background: #FEF2F6;
+  transform: scale(0.97);
+}
+.q-emoji {
+  font-size: 36rpx;
+  line-height: 1;
+}
+.q-note {
+  font-size: 24rpx;
+  color: #6E6569;
+  margin-top: 8rpx;
+  max-width: 170rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-amt {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #D65C80;
+  margin-top: 4rpx;
+}
+
+/* 分类网格 4 列 */
+.cats {
+  display: flex;
+  flex-wrap: wrap;
+}
+.cat {
+  width: calc((100% - 36rpx) / 4);
+  margin-right: 12rpx;
+  margin-bottom: 12rpx;
+  height: 118rpx;
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  border: 2rpx solid #F0E9E5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+}
+.cat:nth-child(4n) {
+  margin-right: 0;
+}
+.cat-on {
+  transform: scale(0.95);
+}
+.c-emoji {
+  font-size: 38rpx;
+  line-height: 1;
+}
+.c-name {
+  font-size: 23rpx;
+  color: #6E6569;
+  margin-top: 8rpx;
+}
+
+.tip {
+  padding: 16rpx 28rpx 26rpx;
+}
+.tip-txt {
+  font-size: 22rpx;
+  color: #A79DA2;
+  line-height: 1.65;
+}
+
+/* ========== 键盘容器 ========== */
+.pad-wrap {
+  flex-shrink: 0;
+  background: #F7F2EF;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
