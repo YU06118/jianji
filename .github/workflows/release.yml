@@ -51,7 +51,8 @@ jobs:
           repo, tag = os.environ['GITHUB_REPOSITORY'], os.environ['GITHUB_REF_NAME']
           version = tag.lstrip('v')
           assets = json.loads(subprocess.check_output(
-              ['gh', 'api', f'repos/{repo}/releases/tags/{tag}'], text=True))
+              ['gh', 'api', f'repos/{repo}/releases/tags/{tag}'],
+              text=True, encoding='utf-8'))
           rel_id = assets['id']
           mapping = {}
           for a in assets['assets']:
