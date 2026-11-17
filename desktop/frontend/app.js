@@ -378,6 +378,85 @@
     clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2000)
   }
 
+  // ---------- 热更新（自动更新）----------
+  async function initUpdater() {
+    const $ = id => document.getElementById(id)
+    // 浏览器预览：隐藏全部更新入口（保留"当前版本"占位）
+    if (!IN_TAURI) {
+      ;['row-upd-check', 'row-upd-auto', 'row-upd-src'].forEach(id => { if ($(id)) $(id).style.display = 'none' })
+      if ($('upd-curver')) $('upd-curver').textContent = '浏览器预览模式'
+      return
+    }
+    try {
+      const { getVersion } = await import('@tauri-apps/api/app')
+      const ver = await getVersion()
+      if ($('upd-version')) $('upd-version').textContent = 'v' + ver
+    } catch (e) { /* 版本显示失败不阻塞 */ }
+
+    // 偏好持久化：复用 get_setting/set_setting
+    const getSet = async k => { try { return await invoke('get_setting', { key: k }) } catch (e) { return null } }
+    const setSet = (k, v) => invoke('set_setting', { key: k, value: v }).catch(() => {})
+    let autoCheck = (await getSet('auto_update_check')) !== '0'   // 默认开
+    let src = await getSet('update_source') || 'auto'             // auto | official | mirror
+
+    const autoEl = $('upd-auto')
+    if (autoEl) autoEl.classList.toggle('on', autoCheck)
+    if (autoEl) autoEl.onclick = () => { autoCheck = !autoCheck; autoEl.classList.toggle('on', autoCheck); setSet('auto_update_check', autoCheck ? '1' : '0') }
+    const SRC_LABEL = { auto: '自动', official: '官方 GitHub', mirror: '国内镜像' }
+    const srcEl = $('upd-src')
+    if (srcEl) {
+      srcEl.textContent = SRC_LABEL[src] + ' ›'
+      srcEl.onclick = () => {
+        const order = ['auto', 'official', 'mirror']
+        src = order[(order.indexOf(src) + 1) % order.length]
+        srcEl.textContent = SRC_LABEL[src] + ' ›'
+        setSet('update_source', src)
+        toast('更新下载源：' + SRC_LABEL[src])
+      }
+    }
+
+    // 检查 + 询问 + 下载安装（进度走 toast 节流）
+    let busy = false
+    async function checkAndOffer(silent) {
+      if (busy) return
+      busy = true
+      try {
+        if (!silent) toast('正在检查更新…')
+        const meta = await invoke('updater_check', { source: src })
+        if (!meta) { if (!silent) toast('当前已是最新版本'); return }
+        if (confirm(`发现新版本 v${meta.version}（当前 v${meta.current_version}）\n\n${meta.notes || '暂无更新说明'}\n\n立即下载并安装？`)) {
+          let lastPct = -10
+          const un = await import('@tauri-apps/api/event')
+          const listen = un.listen
+          const stop = await listen('updater://progress', ev => {
+            const { downloaded, total } = ev.payload || {}
+            if (total) {
+              const pct = Math.floor(downloaded / total * 100)
+              if (pct >= lastPct + 10) { lastPct = pct; toast(`下载中 ${pct}%`) }
+            }
+          })
+          try {
+            toast('开始下载更新…')
+            await invoke('updater_download_install')
+            toast('下载完成，正在安装…')
+            // Windows 下 install 会自动退出应用；若未退出则主动重启
+            setTimeout(async () => {
+              try { const { relaunch } = await import('@tauri-apps/plugin-process'); await relaunch() } catch (e) { }
+            }, 3000)
+          } finally { stop().catch(() => {}) }
+        }
+      } catch (e) {
+        if (!silent) toast('检查更新失败：' + (e && e.message || e))
+        // 静默检查失败不提示（如未联网）
+      } finally { busy = false }
+    }
+    if ($('upd-check')) $('upd-check').onclick = () => checkAndOffer(false)
+
+    // 启动静默检查：延后 3s 避开启动期 IO，异常吞掉
+    if (autoCheck) setTimeout(() => checkAndOffer(true), 3000)
+  }
+
   // 启动
   loadRecords()
+  initUpdater()
 })()
