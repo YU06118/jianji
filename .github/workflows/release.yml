@@ -38,6 +38,54 @@ jobs:
           prerelease: false
           updaterJsonPreferNsis: true
 
+      # ---------- 生成并上传 latest.json（tauri-action 因中文资产名被 GitHub 清洗而无法自动生成）----------
+      - name: Generate & upload latest.json
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # 1) 把 Release 资产重命名为 ASCII（GitHub 会清洗中文文件名，导致签名匹配失败）
+          python - << 'PY'
+          import json, os, subprocess
+          repo, tag = os.environ['GITHUB_REPOSITORY'], os.environ['GITHUB_REF_NAME']
+          version = tag.lstrip('v')
+          assets = json.loads(subprocess.check_output(
+              ['gh', 'api', f'repos/{repo}/releases/tags/{tag}'], text=True))
+          rel_id = assets['id']
+          mapping = {}
+          for a in assets['assets']:
+              name = a['name']
+              if name.endswith('-setup.exe') or name.endswith('-setup.exe.sig'):
+                  new = 'jianji_' + version + '_x64-setup.exe' + ('.sig' if name.endswith('.sig') else '')
+                  if new != name:
+                      subprocess.check_call(['gh', 'api', '-X', 'PATCH',
+                          f'repos/{repo}/releases/assets/{a["id"]}',
+                          '-f', f'name={new}'], stdout=subprocess.DEVNULL)
+                  mapping[name] = new
+          print('assets:', mapping)
+          PY
+          # 2) 下载签名并生成 latest.json（signature 为 .sig 文件完整内容）
+          mkdir -p updater
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" -p "jianji_*-setup.exe.sig" -D updater
+          python - << 'PY'
+          import json, glob, os, subprocess
+          from datetime import datetime, timezone
+          repo, tag = os.environ['GITHUB_REPOSITORY'], os.environ['GITHUB_REF_NAME']
+          version = tag.lstrip('v')
+          sig = open(glob.glob('updater/jianji_*-setup.exe.sig')[0], encoding='utf-8').read()
+          url = f'https://github.com/{repo}/releases/download/{tag}/jianji_{version}_x64-setup.exe'
+          d = {'version': version, 'notes': '详见 Release 页', 'pub_date':
+               datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+               'platforms': {'windows-x86_64': {'signature': sig, 'url': url}}}
+          json.dump(d, open('updater/latest.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+          print(open('updater/latest.json', encoding='utf-8').read())
+          PY
+          # 3) 上传（发布纪律：上传前已本地校验 JSON 合法）
+          python -c "import json; json.load(open('updater/latest.json', encoding='utf-8'))"
+          gh release upload "$GITHUB_REF_NAME" updater/latest.json --clobber --repo "$GITHUB_REPOSITORY"
+          echo "latest.json uploaded"
+
       # ---------- 同步镜像到腾讯 COS（Secrets 未配置时自动跳过）----------
       - name: Sync mirror to Tencent COS
         env:
@@ -61,7 +109,8 @@ jobs:
           # GitHub Release URL -> COS URL；安装包文件名改 ASCII
           exe = glob.glob('mirror/*-setup.exe')[0]
           ascii_name = exe.replace('简记_', 'jianji_')
-          os.rename(exe, ascii_name)
+          if exe != ascii_name:
+              os.rename(exe, ascii_name)
           w['url'] = f'https://{bucket}.cos.{region}.myqcloud.com/{os.path.basename(ascii_name)}'
           json.dump(d, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
           print('mirror latest.json:', json.dumps(w, ensure_ascii=False))
