@@ -332,6 +332,10 @@ body{
             <div class="setrow"><div class="si">▦</div><div class="st"><b>月度账单提醒</b><span>每月 1 日推送上月报表</span></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
             <div class="setrow"><div class="si">↻</div><div class="st"><b>自动云同步</b><span>同步码 · 已关联设备 2 台</span></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
             <div class="setrow"><div class="si">⤓</div><div class="st"><b>导出数据</b><span>Excel / CSV · PDF 报表 · JSON 备份</span></div><span class="link" onclick="toast('导出面板（原型）')">导出 ›</span></div>
+            <div class="setrow" id="row-upd-version"><div class="si">ⓘ</div><div class="st"><b>当前版本</b><span id="upd-curver">简记</span></div><span class="link" id="upd-version">0.1.1</span></div>
+            <div class="setrow" id="row-upd-check"><div class="si">↻</div><div class="st"><b>检查更新</b><span>自动下载并静默安装新版本</span></div><span class="link" id="upd-check">立即检查 ›</span></div>
+            <div class="setrow" id="row-upd-auto"><div class="si">◔</div><div class="st"><b>自动检查更新</b><span>启动时在后台检查，发现新版再询问</span></div><div class="toggle" id="upd-auto"></div></div>
+            <div class="setrow" id="row-upd-src"><div class="si">⇅</div><div class="st"><b>更新下载源</b><span>官方 GitHub / 国内镜像</span></div><span class="link" id="upd-src">自动 ›</span></div>
           </div>
         </section>
 
