@@ -208,7 +208,16 @@ body{
 /* toast */
 .toast{position:fixed;bottom:34px;left:50%;transform:translate(-50%,20px);background:rgba(30,30,36,.9);color:#fff;padding:12px 22px;border-radius:12px;font-size:14px;font-weight:500;z-index:80;opacity:0;pointer-events:none;transition:all .4s var(--ease-spring);box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-.badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--foot);color:var(--accent);background:var(--accent-soft);padding:5px 10px;border-radius:20px;font-weight:600}
+/* 自绘更新确认框（WebView2 下原生 confirm() 不可靠，必须自绘） */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:90;backdrop-filter:blur(4px)}
+.modal-mask.show{display:flex}
+.modal-box{background:var(--surface,#1e1e24);border-radius:16px;padding:22px;width:340px;max-width:86vw;box-shadow:var(--shadow,0 20px 60px rgba(0,0,0,.4))}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:10px}
+.modal-msg{font-size:13.5px;line-height:1.7;color:var(--label2,#888);white-space:pre-wrap;margin-bottom:18px}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end}
+.modal-btn{border:0;border-radius:10px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer}
+.modal-btn.ghost{background:rgba(128,128,128,.15);color:inherit}
+.modal-btn.primary{background:var(--accent,#5b6cff);color:#fff}.badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--foot);color:var(--accent);background:var(--accent-soft);padding:5px 10px;border-radius:20px;font-weight:600}
 </style>
 </head>
 <body>
@@ -333,7 +342,7 @@ body{
             <div class="setrow"><div class="si">↻</div><div class="st"><b>自动云同步</b><span>同步码 · 已关联设备 2 台</span></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
             <div class="setrow"><div class="si">⤓</div><div class="st"><b>导出数据</b><span>Excel / CSV · PDF 报表 · JSON 备份</span></div><span class="link" onclick="toast('导出面板（原型）')">导出 ›</span></div>
             <div class="setrow" id="row-upd-version"><div class="si">ⓘ</div><div class="st"><b>当前版本</b><span id="upd-curver">简记</span></div><span class="link" id="upd-version">0.1.1</span></div>
-            <div class="setrow" id="row-upd-check"><div class="si">↻</div><div class="st"><b>检查更新</b><span>自动下载并静默安装新版本</span></div><span class="link" id="upd-check">立即检查 ›</span></div>
+            <div class="setrow" id="row-upd-check"><div class="si">↻</div><div class="st"><b>检查更新</b><span id="upd-status">自动下载并静默安装新版本</span></div><span class="link" id="upd-check">立即检查 ›</span></div>
             <div class="setrow" id="row-upd-auto"><div class="si">◔</div><div class="st"><b>自动检查更新</b><span>启动时在后台检查，发现新版再询问</span></div><div class="toggle" id="upd-auto"></div></div>
             <div class="setrow" id="row-upd-src"><div class="si">⇅</div><div class="st"><b>更新下载源</b><span>官方 GitHub / 国内镜像</span></div><span class="link" id="upd-src">自动 ›</span></div>
           </div>
@@ -358,6 +367,16 @@ body{
       <button>4</button><button>5</button><button>6</button><button class="clear" style="font-size:14px;color:var(--label2)">清空</button>
       <button>7</button><button>8</button><button>9</button><button class="ok">完成</button>
       <button style="grid-column:span 2">0</button><button>.</button><button class="photo" style="font-size:18px">▣</button>
+    </div>
+  </div>
+</div>
+<div class="modal-mask" id="upd-modal">
+  <div class="modal-box">
+    <div class="modal-title">发现新版本</div>
+    <div class="modal-msg" id="upd-modal-msg"></div>
+    <div class="modal-btns">
+      <button class="modal-btn ghost" id="upd-modal-cancel">稍后</button>
+      <button class="modal-btn primary" id="upd-modal-ok">立即更新</button>
     </div>
   </div>
 </div>

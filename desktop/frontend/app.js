@@ -415,39 +415,66 @@
       }
     }
 
-    // 检查 + 询问 + 下载安装（进度走 toast 节流）
+    // 检查 + 询问 + 下载安装
+    // 状态持久显示在「检查更新」行副文字（upd-status），失败原因不丢失，便于诊断
+    // 确认框必须自绘：WebView2 下原生 confirm() 不可靠（对话框不显示 / 同步返回假值）
+    const STATUS_EL = $('upd-status')
+    const STATUS_DEFAULT = '自动下载并静默安装新版本'
+    function setStatus(t) { if (STATUS_EL) STATUS_EL.textContent = t || STATUS_DEFAULT }
+    function confirmUpdate(msg) {
+      return new Promise(resolve => {
+        const mask = $('upd-modal'), msgEl = $('upd-modal-msg')
+        if (!mask || !msgEl) { resolve(false); return }
+        msgEl.textContent = msg
+        mask.classList.add('show')
+        const ok = $('upd-modal-ok'), cancel = $('upd-modal-cancel')
+        const done = v => {
+          mask.classList.remove('show')
+          ok.onclick = cancel.onclick = mask.onclick = null
+          resolve(v)
+        }
+        ok.onclick = () => done(true)
+        cancel.onclick = () => done(false)
+        mask.onclick = e => { if (e.target === mask) done(false) }
+      })
+    }
     let busy = false
     async function checkAndOffer(silent) {
       if (busy) return
       busy = true
       try {
-        if (!silent) toast('正在检查更新…')
+        if (!silent) { toast('正在检查更新…'); setStatus('正在检查更新…') }
         const meta = await invoke('updater_check', { source: src })
-        if (!meta) { if (!silent) toast('当前已是最新版本'); return }
-        if (confirm(`发现新版本 v${meta.version}（当前 v${meta.current_version}）\n\n${meta.notes || '暂无更新说明'}\n\n立即下载并安装？`)) {
-          let lastPct = -10
-          const un = await import('@tauri-apps/api/event')
-          const listen = un.listen
-          const stop = await listen('updater://progress', ev => {
-            const { downloaded, total } = ev.payload || {}
-            if (total) {
-              const pct = Math.floor(downloaded / total * 100)
-              if (pct >= lastPct + 10) { lastPct = pct; toast(`下载中 ${pct}%`) }
-            }
-          })
-          try {
-            toast('开始下载更新…')
-            await invoke('updater_download_install')
-            toast('下载完成，正在安装…')
-            // Windows 下 install 会自动退出应用；若未退出则主动重启
-            setTimeout(async () => {
-              try { const { relaunch } = await import('@tauri-apps/plugin-process'); await relaunch() } catch (e) { }
-            }, 3000)
-          } finally { stop().catch(() => {}) }
+        if (!meta) {
+          if (!silent) { toast('当前已是最新版本'); setStatus('当前已是最新版本（' + new Date().toLocaleTimeString() + ' 检查）') }
+          return
         }
+        setStatus('发现新版本 v' + meta.version)
+        const yes = await confirmUpdate(`发现新版本 v${meta.version}（当前 v${meta.current_version}）\n\n${meta.notes || '暂无更新说明'}\n\n立即下载并安装？`)
+        if (!yes) { setStatus('已跳过 v' + meta.version + '，可再次点击「立即检查」'); return }
+        let lastPct = -10
+        const un = await import('@tauri-apps/api/event')
+        const listen = un.listen
+        const stop = await listen('updater://progress', ev => {
+          const { downloaded, total } = ev.payload || {}
+          if (total) {
+            const pct = Math.floor(downloaded / total * 100)
+            if (pct >= lastPct + 10) { lastPct = pct; toast(`下载中 ${pct}%`); setStatus('下载中 ' + pct + '%') }
+          }
+        })
+        try {
+          toast('开始下载更新…'); setStatus('开始下载更新…')
+          await invoke('updater_download_install')
+          toast('下载完成，正在安装…'); setStatus('下载完成，正在安装…')
+          // Windows 下 install 会自动退出应用；若未退出则主动重启
+          setTimeout(async () => {
+            try { const { relaunch } = await import('@tauri-apps/plugin-process'); await relaunch() } catch (e) { }
+          }, 3000)
+        } finally { stop().catch(() => {}) }
       } catch (e) {
-        if (!silent) toast('检查更新失败：' + (e && e.message || e))
-        // 静默检查失败不提示（如未联网）
+        const msg = '检查更新失败：' + (e && e.message || e)
+        if (!silent) toast(msg)
+        setStatus(msg) // 失败原因持久显示（含静默检查），便于诊断
       } finally { busy = false }
     }
     if ($('upd-check')) $('upd-check').onclick = () => checkAndOffer(false)
