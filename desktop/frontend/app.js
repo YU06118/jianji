@@ -317,8 +317,7 @@
   async function pickImage() {
     if (!IN_TAURI) { toast('小票图片需 Tauri 环境'); return }
     try {
-      const { open } = await import('@tauri-apps/plugin-dialog')
-      const p = await open({ multiple: false, filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })
+      const p = await window.__TAURI__.dialog.open({ multiple: false, filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })
       if (!p) return
       pendingImage = await invoke('save_image', { srcPath: p, name: 'receipt_' + Date.now() + '.png' })
       toast('小票图片已保存到本地')
@@ -345,10 +344,8 @@
   async function downloadText(name, text, mime) {
     if (IN_TAURI) {
       try {
-        const { save } = await import('@tauri-apps/plugin-dialog')
-        const { writeTextFile } = await import('@tauri-apps/plugin-fs')
-        const path = await save({ defaultPath: name })
-        if (path) { await writeTextFile(path, text); toast('已保存到 ' + path); return }
+        const path = await window.__TAURI__.dialog.save({ defaultPath: name })
+        if (path) { await window.__TAURI__.fs.writeTextFile(path, text); toast('已保存到 ' + path); return }
       } catch (e) { /* fall through */ }
     }
     const blob = new Blob([text], { type: mime || 'text/plain;charset=utf-8' })
@@ -388,8 +385,7 @@
       return
     }
     try {
-      const { getVersion } = await import('@tauri-apps/api/app')
-      const ver = await getVersion()
+      const ver = await window.__TAURI__.app.getVersion()
       if ($('upd-version')) $('upd-version').textContent = 'v' + ver
     } catch (e) { /* 版本显示失败不阻塞 */ }
 
@@ -453,9 +449,7 @@
         const yes = await confirmUpdate(`发现新版本 v${meta.version}（当前 v${meta.current_version}）\n\n${meta.notes || '暂无更新说明'}\n\n立即下载并安装？`)
         if (!yes) { setStatus('已跳过 v' + meta.version + '，可再次点击「立即检查」'); return }
         let lastPct = -10
-        const un = await import('@tauri-apps/api/event')
-        const listen = un.listen
-        const stop = await listen('updater://progress', ev => {
+        const stop = await window.__TAURI__.event.listen('updater://progress', ev => {
           const { downloaded, total } = ev.payload || {}
           if (total) {
             const pct = Math.floor(downloaded / total * 100)
@@ -468,7 +462,7 @@
           toast('下载完成，正在安装…'); setStatus('下载完成，正在安装…')
           // Windows 下 install 会自动退出应用；若未退出则主动重启
           setTimeout(async () => {
-            try { const { relaunch } = await import('@tauri-apps/plugin-process'); await relaunch() } catch (e) { }
+            try { await window.__TAURI__.process.relaunch() } catch (e) { }
           }, 3000)
         } finally { stop().catch(() => {}) }
       } catch (e) {
