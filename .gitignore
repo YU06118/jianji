@@ -11,3 +11,12 @@ desktop/src-tauri/gen/
 Thumbs.db
 desktop.ini
 *.log
+
+# WorkBuddy 工作数据
+.workbuddy/
+
+# 本地交付包（构建产物，不入库）
+*.zip
+
+# 微信开发者工具本地个人配置
+简记小程序/project.private.config.json
