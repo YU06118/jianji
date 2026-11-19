@@ -5,20 +5,23 @@
     "pages/stats/stats",
     "pages/goal/goal",
     "pages/budget/budget",
-    "pages/me/me"
+    "pages/me/me",
+    "pages/settings/settings"
   ],
   "window": {
-    "backgroundTextStyle": "dark",
-    "navigationBarBackgroundColor": "#F5F5F7",
+    "backgroundTextStyle": "@bgTxtStyle",
+    "navigationBarBackgroundColor": "@navBgColor",
     "navigationBarTitleText": "简记",
-    "navigationBarTextStyle": "black",
-    "backgroundColor": "#F2F2F7"
+    "navigationBarTextStyle": "@navTxtStyle",
+    "backgroundColor": "@bgColor",
+    "backgroundColorTop": "@bgColorTop",
+    "backgroundColorBottom": "@bgColorBottom"
   },
   "tabBar": {
-    "color": "#8E8E93",
-    "selectedColor": "#4F5BD5",
-    "backgroundColor": "#FFFFFF",
-    "borderStyle": "white",
+    "color": "@tabFontColor",
+    "selectedColor": "@tabSelectedColor",
+    "backgroundColor": "@tabBgColor",
+    "borderStyle": "@tabBorderStyle",
     "list": [
       {
         "pagePath": "pages/index/index",
@@ -38,6 +41,8 @@
       }
     ]
   },
+  "darkmode": true,
+  "themeLocation": "theme.json",
   "style": "v2",
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"

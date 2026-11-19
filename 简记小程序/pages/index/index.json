@@ -1,9 +1,9 @@
 {
   "navigationBarTitleText": "简记",
-  "navigationBarBackgroundColor": "#EE7396",
-  "navigationBarTextStyle": "white",
+  "navigationBarBackgroundColor": "@navBgColor",
+  "navigationBarTextStyle": "@navTxtStyle",
   "enablePullDownRefresh": true,
-  "backgroundColor": "#FBF8F6",
-  "backgroundTextStyle": "dark",
+  "backgroundColor": "@bgColor",
+  "backgroundTextStyle": "@bgTxtStyle",
   "usingComponents": {}
 }

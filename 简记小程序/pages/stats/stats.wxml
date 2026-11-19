@@ -1,4 +1,4 @@
-<view class="page {{theme}}">
+<view class="page {{theme}} {{modeClass}}">
 
   <!-- ============ 月份切换 ============ -->
   <view class="month-bar">
@@ -55,7 +55,7 @@
           <view class="rk" wx:for="{{byCat}}" wx:key="key"
                 data-k="{{item.key}}" bindtap="onCatTap">
             <view class="rk-head">
-              <text class="rk-emoji">{{item.emoji}}</text>
+              <image class="rk-ico" src="/assets/icons/{{item.key}}.svg" mode="aspectFit"/>
               <text class="rk-name">{{item.name}}</text>
               <text class="rk-count">{{item.count}}笔</text>
               <text class="rk-amt num">¥{{item.amountText}}</text>
@@ -80,7 +80,7 @@
       </block>
 
       <view class="empty" wx:else>
-        <text class="empty-emoji">📊</text>
+        <image class="empty-emoji" src="/assets/icons/empty-chart.svg" mode="aspectFit"/>
         <view class="empty-txt">这个月还没有记录</view>
         <view class="empty-txt">记上几笔，这里就能看出钱去哪了</view>
       </view>
@@ -96,7 +96,7 @@
       </view>
       <view class="cb" wx:for="{{catBudgets}}" wx:key="key">
         <view class="cb-head">
-          <text class="cb-name">{{item.emoji}} {{item.name}}</text>
+          <text class="cb-name">{{item.name}}</text>
           <view class="cb-right">
             <text class="cb-amt num">¥{{item.usedText}}</text>
             <text class="cb-of num">/ ¥{{item.budgetText}}</text>

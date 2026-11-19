@@ -66,6 +66,7 @@ function defaultSettings() {
     budget: { total: 0, cats: {} },
     currency: '¥',
     theme: 'pink',          // 主题色：pink / lilac / blue / matcha
+    appearance: 'dark',     // 外观模式：dark / light / system（默认深色）
     nickname: '',
     seeded: false
   }
@@ -73,10 +74,10 @@ function defaultSettings() {
 
 /* 主题色白名单：只有这四套，外部传什么都落回 pink */
 const THEMES = ['pink', 'lilac', 'blue', 'matcha']
-const THEME_NAMES = { pink: '冷靛蓝', lilac: '石墨蓝', blue: '海蓝', matcha: '冷杉绿' }
+const THEME_NAMES = { pink: '系统蓝', lilac: '紫罗兰', blue: '青蓝', matcha: '森绿' }
 /* 原生导航栏用色：微信原生导航栏不认 CSS 变量，只能靠 API 设色，
    所以这里必须与 app.wxss 里 .t-xxx 定义的 --pink 逐一对齐 */
-const THEME_NAV = { pink: '#4F5BD5', lilac: '#5B6E8F', blue: '#2F7FA8', matcha: '#2F9E6B' }
+const THEME_NAV = { pink: '#0078D4', lilac: '#6B4EFF', blue: '#00809D', matcha: '#0E7C3A' }
 
 function getTheme() {
   const t = String(getSettings().theme || 'pink')
@@ -117,6 +118,50 @@ function setTheme(name) {
 
 function themeList() {
   return THEMES.map(function (k) { return { key: k, name: THEME_NAMES[k], cls: 't-' + k } })
+}
+
+/* ---------------- 外观模式（深色 / 浅色 / 跟随系统） ---------------- */
+const APPEARANCES = ['dark', 'light', 'system']
+function getAppearance() {
+  const a = String(getSettings().appearance || 'dark')
+  return APPEARANCES.indexOf(a) >= 0 ? a : 'dark'
+}
+
+function setAppearance(v) {
+  const a = String(v || '')
+  if (APPEARANCES.indexOf(a) === -1) return getAppearance()
+  saveSettings({ appearance: a })
+  return a
+}
+
+function systemIsDark() {
+  try { return (wx.getSystemInfoSync().theme || 'light') === 'dark' }
+  catch (e) { return false }
+}
+
+/** 当前是否深色：显式深色，或跟随系统且系统是深色 */
+function isDark() {
+  const a = getAppearance()
+  return a === 'dark' || (a === 'system' && systemIsDark())
+}
+
+/** 供页面根节点绑定：class="page {{theme}} {{modeClass}}" */
+function modeClass() {
+  return isDark() ? 'mode-dark' : 'mode-light'
+}
+
+/** 原生导航栏底色：固定深紫黑 + 白字（四套主题、深浅模式统一，不随主题变化） */
+function navColor() {
+  return '#1E1A2E'
+}
+
+/** 外观模式选项列表（设置页 segmented 用） */
+function appearanceList() {
+  return [
+    { key: 'dark', name: '深色' },
+    { key: 'light', name: '浅色' },
+    { key: 'system', name: '跟随系统' }
+  ]
 }
 
 /* ---------------- 月份索引 ---------------- */
@@ -765,6 +810,14 @@ module.exports = {
   themeTint,
   themeList,
   THEMES,
+  // 外观模式
+  getAppearance,
+  setAppearance,
+  systemIsDark,
+  isDark,
+  modeClass,
+  navColor,
+  appearanceList,
   // 目标
   getGoals,
   saveGoals,

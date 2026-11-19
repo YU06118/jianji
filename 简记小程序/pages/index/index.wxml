@@ -1,4 +1,4 @@
-<view class="page {{theme}}">
+<view class="page {{theme}} {{modeClass}}">
 
   <!-- ================= 顶部：本月还能花多少 ================= -->
   <view class="hero tone-{{bs.tone}}">
@@ -81,7 +81,7 @@
         <view class="q-item" wx:for="{{quickTags}}" wx:key="key"
               hover-class="q-on" hover-stay-time="60"
               data-i="{{index}}" bindtap="onQuick">
-          <text class="q-emoji">{{item.emoji}}</text>
+          <image class="q-ico" src="/assets/icons/{{item.cat}}.svg" mode="aspectFit"/>
           <text class="q-note">{{item.displayNote}}</text>
           <text class="q-amt num">¥{{item.amountText}}</text>
         </view>
@@ -146,8 +146,8 @@
         <view class="rec" wx:for="{{recent}}" wx:key="id"
               data-ym="{{item.ym}}" data-id="{{item.id}}"
               bindtap="onRecTap" bindlongpress="onRecLong">
-          <view class="rec-ico" style="background:{{item.soft}}">
-            <text>{{item.emoji}}</text>
+          <view class="rec-ico">
+            <image class="ico-img" src="/assets/icons/{{item.cat}}.svg" mode="aspectFit"/>
           </view>
           <view class="rec-mid">
             <view class="rec-note">{{item.note || item.catName}}</view>
@@ -161,7 +161,7 @@
       </block>
 
       <view class="empty" wx:else>
-        <text class="empty-emoji">🧾</text>
+        <image class="empty-emoji" src="/assets/icons/empty-receipt.svg" mode="aspectFit"/>
         <view class="empty-txt">还没有记录</view>
         <view class="empty-txt">从上面点「记一笔」开始吧</view>
       </view>

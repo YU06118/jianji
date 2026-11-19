@@ -3,40 +3,40 @@
   "packOptions": {
     "ignore": [
       {
-        "type": "file",
-        "value": "预览版.html"
+        "value": "预览版.html",
+        "type": "file"
       },
       {
-        "type": "file",
-        "value": "README.md"
+        "value": "README.md",
+        "type": "file"
       },
       {
-        "type": "file",
-        "value": "交付说明.txt"
+        "value": "交付说明.txt",
+        "type": "file"
       },
       {
-        "type": "file",
-        "value": "安全与合规规范.md"
+        "value": "安全与合规规范.md",
+        "type": "file"
       },
       {
-        "type": "file",
-        "value": "设计规范.md"
+        "value": "设计规范.md",
+        "type": "file"
       },
       {
-        "type": "file",
-        "value": "测试手册.md"
+        "value": "测试手册.md",
+        "type": "file"
       },
       {
-        "type": "folder",
-        "value": "tools"
+        "value": "tools",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "design"
+        "value": "design",
+        "type": "folder"
       },
       {
-        "type": "file",
-        "value": "微信发布指引.md"
+        "value": "微信发布指引.md",
+        "type": "file"
       }
     ],
     "include": []
@@ -75,7 +75,10 @@
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
-    }
+    },
+    "compileWorklet": false,
+    "localPlugins": false,
+    "condition": false
   },
   "compileType": "miniprogram",
   "libVersion": "3.5.5",
@@ -85,5 +88,6 @@
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2
-  }
+  },
+  "simulatorPluginLibVersion": {}
 }

@@ -5,11 +5,11 @@
   position: relative;
   margin: 24rpx 28rpx 0;
   padding: 36rpx 36rpx 34rpx;
-  border-radius: 36rpx;
+  border-radius: var(--r-card);
   overflow: hidden;
   color: #FFFFFF;
-  background: linear-gradient(135deg, #F5CE8E 0%, #E9A23B 54%, #D98F2C 100%);
-  box-shadow: 0 16rpx 36rpx rgba(230, 143, 38, 0.26);
+  background: var(--amber-solid);
+  box-shadow: var(--sh-card);
 }
 .hero-mask {
   position: absolute;
@@ -59,16 +59,16 @@
   background: rgba(255, 255, 255, 0.28);
 }
 .hero .bar-fill {
-  border-radius: 8rpx;
+  border-radius: var(--r-ctrl);
 }
 
 /* ============ 目标卡 ============ */
 .gcard {
-  background: #FFFFFF;
-  border-radius: 28rpx;
+  background: var(--card);
+  border-radius: var(--r-card);
   padding: 30rpx;
   margin-top: 24rpx;
-  box-shadow: 0 6rpx 24rpx rgba(214, 158, 168, 0.10);
+  box-shadow: var(--sh-card);
 }
 .gc-head {
   display: flex;
@@ -81,7 +81,8 @@
 .gc-ico {
   width: 84rpx;
   height: 84rpx;
-  border-radius: 26rpx;
+  border-radius: var(--r-card);
+  background: var(--bg-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -97,12 +98,12 @@
   display: block;
   font-size: 31rpx;
   font-weight: 600;
-  color: #3A3336;
+  color: var(--ink);
 }
 .gc-sub {
   display: block;
   font-size: 23rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   margin-top: 6rpx;
 }
 .gc-pct {
@@ -120,34 +121,35 @@
 .gc-saved {
   font-size: 34rpx;
   font-weight: 700;
-  color: #3A3336;
+  color: var(--ink);
 }
 .gc-target {
   font-size: 24rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   margin-left: 8rpx;
 }
 .gc-btn {
   margin-left: auto;
   padding: 12rpx 30rpx;
-  border-radius: 28rpx;
-  background: #FEF4E4;
-  color: #C9821A;
+  border-radius: var(--r-ctrl);
+  background: var(--amber-soft);
+  color: var(--amber);
   font-size: 25rpx;
   font-weight: 600;
 }
 .gc-btn:active {
-  background: #FBE4C4;
+  background: var(--amber-solid);
+  color: #FFFFFF;
   transform: scale(0.96);
 }
 
 .gc-tip {
   margin-top: 20rpx;
   padding: 18rpx 22rpx;
-  border-radius: 20rpx;
-  background: #FAF5EF;
+  border-radius: var(--r-ctrl);
+  background: var(--bg-2);
   font-size: 23rpx;
-  color: #8B7C6B;
+  color: var(--ink-2);
   line-height: 1.5;
 }
 
@@ -157,7 +159,7 @@
 
 .foot-note {
   font-size: 22rpx;
-  color: #B9AFB4;
+  color: var(--ink-3);
   line-height: 1.65;
   padding: 26rpx 12rpx 40rpx;
   text-align: center;
@@ -170,7 +172,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(46, 42, 43, 0.38);
+  background: rgba(0, 0, 0, 0.4);
   z-index: 100;
 }
 
@@ -180,12 +182,12 @@
   right: 0;
   bottom: 0;
   z-index: 101;
-  background: #FFFFFF;
-  border-radius: 36rpx 36rpx 0 0;
+  background: var(--card);
+  border-radius: var(--r-card) var(--r-card) 0 0;
   max-height: 88vh;
   display: flex;
   flex-direction: column;
-  animation: sheetUp 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation: sheetUp 0.26s var(--bounce) both;
 }
 @keyframes sheetUp {
   from { transform: translateY(100%); }
@@ -197,22 +199,22 @@
   align-items: center;
   justify-content: space-between;
   padding: 30rpx 32rpx 22rpx;
-  border-bottom: 2rpx solid #F0E9E5;
+  border-bottom: 2rpx solid var(--line);
   flex-shrink: 0;
 }
 .sh-cancel {
   font-size: 28rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
 }
 .sh-title {
   font-size: 30rpx;
   font-weight: 700;
-  color: #3A3336;
+  color: var(--ink);
 }
 .sh-ok {
   font-size: 28rpx;
   font-weight: 700;
-  color: #D65C80;
+  color: var(--pink);
 }
 
 .sheet-body {
@@ -231,24 +233,24 @@
   display: flex;
   align-items: center;
   min-height: 106rpx;
-  border-bottom: 2rpx solid #F0E9E5;
+  border-bottom: 2rpx solid var(--line);
 }
 .fl-k {
   width: 210rpx;
   font-size: 27rpx;
-  color: #6E6569;
+  color: var(--ink-2);
   flex-shrink: 0;
 }
 .fl-in {
   flex: 1;
   font-size: 30rpx;
-  color: #3A3336;
+  color: var(--ink);
   text-align: right;
   min-width: 0;
 }
 .fl-unit {
   font-size: 24rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   margin-left: 10rpx;
   flex-shrink: 0;
 }
@@ -256,15 +258,15 @@
   flex: 1;
   text-align: right;
   font-size: 28rpx;
-  color: #3A3336;
+  color: var(--ink);
 }
 .fl-clear {
   font-size: 23rpx;
-  color: #C4BABF;
+  color: var(--ink-3);
   margin-left: 16rpx;
 }
 .ph {
-  color: #CFC5C9;
+  color: var(--ink-3);
 }
 
 .emoji-row {
@@ -276,67 +278,67 @@
 .em {
   width: 72rpx;
   height: 72rpx;
-  border-radius: 20rpx;
+  border-radius: var(--r-ctrl);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 36rpx;
   margin: 6rpx 0 6rpx 12rpx;
-  background: #F5F0EC;
+  background: var(--bg-2);
 }
 .em.on {
-  background: #FEF5F8;
-  border: 3rpx solid #F2A0B5;
+  background: var(--pink-soft);
+  border: 3rpx solid var(--pink);
 }
 
 .sheet-del {
   margin: 40rpx 0 20rpx;
   text-align: center;
   font-size: 27rpx;
-  color: #D95A54;
+  color: var(--danger);
   padding: 24rpx;
-  border-radius: 24rpx;
-  background: #FDEDEC;
+  border-radius: var(--r-ctrl);
+  background: var(--danger-soft);
 }
 
 /* ============ 存一笔 ============ */
 .dp-seg {
   display: inline-flex;
-  background: #F1EAE6;
-  border-radius: 30rpx;
+  background: var(--bg-2);
+  border-radius: var(--r-ctrl);
   padding: 6rpx;
   margin: 20rpx 0 8rpx;
 }
 .dp-seg-i {
   padding: 12rpx 38rpx;
-  border-radius: 26rpx;
+  border-radius: var(--r-ctrl);
   font-size: 26rpx;
-  color: #6E6569;
+  color: var(--ink-2);
 }
 .dp-seg-i.on {
-  background: #FFFFFF;
-  color: #D65C80;
+  background: var(--card);
+  color: var(--pink-deep);
   font-weight: 600;
-  box-shadow: 0 2rpx 8rpx rgba(180, 140, 148, 0.16);
+  box-shadow: var(--sh-card);
 }
 
 .dp-amt {
   display: flex;
   align-items: baseline;
   padding: 28rpx 0 20rpx;
-  border-bottom: 4rpx solid #F7DCE5;
+  border-bottom: 4rpx solid var(--pink-soft);
 }
 .dp-cur {
   font-size: 44rpx;
   font-weight: 700;
-  color: #D65C80;
+  color: var(--pink);
   margin-right: 12rpx;
 }
 .dp-in {
   flex: 1;
   font-size: 72rpx;
   font-weight: 700;
-  color: #3A3336;
+  color: var(--ink);
   min-width: 0;
 }
 
@@ -347,22 +349,23 @@
 }
 .dq {
   padding: 14rpx 34rpx;
-  border-radius: 26rpx;
-  background: #FEF5F8;
-  color: #D65C80;
+  border-radius: var(--r-ctrl);
+  background: var(--pink-soft);
+  color: var(--pink);
   font-size: 26rpx;
   font-weight: 600;
   margin-right: 16rpx;
   margin-bottom: 16rpx;
 }
 .dq:active {
-  background: #F7DCE5;
+  background: var(--accent-solid);
+  color: #FFFFFF;
   transform: scale(0.95);
 }
 
 .dp-tip {
   font-size: 23rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   margin-top: 18rpx;
   padding-bottom: 30rpx;
 }

@@ -1,24 +1,31 @@
-<view class="add-page {{theme}}">
+<view class="add-page {{theme}} {{modeClass}}">
 
   <!-- ========== 顶部输入区 ========== -->
   <view class="head">
     <!-- 支出 / 收入 -->
     <view class="seg">
       <view class="seg-i {{type === 'expense' ? 'on' : ''}}"
-            style="{{type === 'expense' ? 'background:' + curCat.color : ''}}"
             data-t="expense" bindtap="onType">支出</view>
       <view class="seg-i {{type === 'income' ? 'on' : ''}}"
-            style="{{type === 'income' ? 'background:' + curCat.color : ''}}"
             data-t="income" bindtap="onType">收入</view>
     </view>
 
     <!-- 金额 -->
     <view class="amt-row">
-      <text class="cur" style="color:{{curCat.color}}">¥</text>
-      <text class="amt num {{amountStr ? '' : 'dim'}}">{{amountStr || '0'}}</text>
-      <view class="caret {{amountStr ? '' : 'blink'}}"></view>
-      <view class="cat-badge" style="background:{{curCat.soft}};color:{{curCat.color}}">
-        <text>{{curCat.emoji}} {{curCat.name}}</text>
+      <text class="cur">¥</text>
+      <input class="amt-input num"
+             type="digit"
+             value="{{amountStr}}"
+             bindinput="onAmountInput"
+             bindconfirm="onConfirm"
+             confirm-type="done"
+             placeholder="0"
+             placeholder-class="amt-ph"
+             focus="{{amountFocus}}"
+             maxlength="10" />
+      <view class="cat-badge">
+        <image class="badge-ico" src="/assets/icons/{{curCat.key}}.svg" mode="aspectFit"/>
+        <text>{{curCat.name}}</text>
       </view>
     </view>
 
@@ -36,8 +43,7 @@
                placeholder-class="ph"
                maxlength="20"
                confirm-type="done"
-               bindinput="onNote"
-               bindconfirm="onNoteDone" />
+               bindinput="onNote" />
         <view class="note-clear" wx:if="{{note}}" catchtap="clearNote">✕</view>
       </view>
     </view>
@@ -57,8 +63,8 @@
           <view class="quick" wx:for="{{quickTags}}" wx:key="key"
                 hover-class="quick-on" hover-stay-time="60"
                 data-i="{{index}}" bindtap="onQuick">
-            <text class="q-emoji">{{item.emoji}}</text>
-            <text class="q-note">{{item.note}}</text>
+          <image class="q-ico" src="/assets/icons/{{item.cat}}.svg" mode="aspectFit"/>
+          <text class="q-note">{{item.note}}</text>
             <text class="q-amt num">¥{{item.amountText}}</text>
           </view>
         </view>
@@ -68,7 +74,7 @@
     <!-- 分类 -->
     <view class="sec">
       <view class="sec-t">
-        <text>{{type === 'expense' ? '💰 花在哪了' : '📥 钱从哪来'}}</text>
+        <text>{{type === 'expense' ? '支出分类' : '收入分类'}}</text>
         <text class="sec-hint" wx:if="{{catTouched}}">已手动选</text>
         <text class="sec-hint auto" wx:elif="{{autoHint}}">已自动猜中</text>
       </view>
@@ -76,10 +82,9 @@
         <view class="cat {{cat === item.key ? 'on' : ''}}"
               wx:for="{{cats}}" wx:key="key"
               hover-class="cat-on" hover-stay-time="60"
-              data-k="{{item.key}}" bindtap="onCat"
-              style="{{cat === item.key ? 'background:' + item.soft + ';border-color:' + item.color : ''}}">
-          <text class="c-emoji">{{item.emoji}}</text>
-          <text class="c-name" style="{{cat === item.key ? 'color:' + item.color + ';font-weight:600' : ''}}">{{item.name}}</text>
+              data-k="{{item.key}}" bindtap="onCat">
+          <image class="c-ico" src="/assets/icons/{{item.key}}.svg" mode="aspectFit"/>
+          <text class="c-name">{{item.name}}</text>
         </view>
       </view>
     </view>
@@ -89,9 +94,11 @@
     </view>
   </scroll-view>
 
-  <!-- ========== 键盘 ========== -->
-  <view class="pad-wrap">
-    <numpad bind:key="onKey" bind:confirm="onConfirm" />
+  <!-- ========== 底部保存 ========== -->
+  <view class="save-bar">
+    <view class="btn btn-primary btn-block" bindtap="onConfirm">
+      {{editingId ? '保存修改' : '保存这一笔'}}
+    </view>
   </view>
 
 </view>

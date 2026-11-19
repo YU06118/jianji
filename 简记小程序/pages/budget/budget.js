@@ -7,6 +7,7 @@ const C = require('../../utils/categories.js')
 Page({
   data: {
     theme: 't-pink',
+    modeClass: store.modeClass(),
     total: '',
     cats: [],
     sumCatsText: '0',
@@ -18,9 +19,7 @@ Page({
   },
 
   onShow() {
-    const t = store.themeClass()
-    if (t !== this.data.theme) this.setData({ theme: t })
-    getApp().syncNavBar()
+    this.applyAppearance()
   },
 
   onLoad() {
@@ -198,5 +197,15 @@ Page({
         wx.showToast({ title: '已清空', icon: 'none' })
       }
     })
+  },
+
+  /* 外观模式：刷新根节点 class；不含原生层同步（由 app.syncAppearance 单向驱动） */
+  applyAppearance() {
+    const patch = {}
+    const t = store.themeClass()
+    const m = store.modeClass()
+    if (t !== this.data.theme) patch.theme = t
+    if (m !== this.data.modeClass) patch.modeClass = m
+    if (Object.keys(patch).length) this.setData(patch)
   }
 })

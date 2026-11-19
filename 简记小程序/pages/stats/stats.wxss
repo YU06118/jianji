@@ -15,16 +15,16 @@
   align-items: center;
   justify-content: center;
   font-size: 44rpx;
-  color: #EE7396;
-  background: #FFFFFF;
-  box-shadow: 0 3rpx 12rpx rgba(214, 158, 168, 0.12);
+  color: var(--pink);
+  background: var(--card);
+  box-shadow: var(--sh-card);
   line-height: 1;
   padding-bottom: 6rpx;
 }
 .mb-btn.off {
-  color: #CFC5C9;
+  color: var(--ink-3);
   box-shadow: none;
-  background: #F5F0EC;
+  background: var(--bg-2);
 }
 .mb-on {
   transform: scale(0.92);
@@ -34,7 +34,7 @@
   text-align: center;
   font-size: 32rpx;
   font-weight: 700;
-  color: #3A3336;
+  color: var(--ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,16 +42,16 @@
 .mb-live {
   font-size: 20rpx;
   font-weight: 500;
-  color: #4CBFA3;
-  background: #E8F7F2;
-  border-radius: 16rpx;
+  color: var(--mint);
+  background: var(--mint-soft);
+  border-radius: var(--r-chip);
   padding: 3rpx 12rpx;
   margin-left: 12rpx;
 }
 
 /* ============ 总额卡 ============ */
 .total-card {
-  background: linear-gradient(160deg, #FFFFFF 0%, #FEF5F8 100%);
+  background: var(--card);
 }
 .total-num {
   font-size: 76rpx;
@@ -59,7 +59,7 @@
   letter-spacing: -2rpx;
   line-height: 1.15;
   margin: 10rpx 0 6rpx;
-  color: #3A3336;
+  color: var(--ink);
 }
 .total-cur {
   font-size: 36rpx;
@@ -68,7 +68,7 @@
 }
 .total-sub {
   font-size: 24rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
 }
 
 /* ============ 环形图 ============ */
@@ -101,7 +101,7 @@
 }
 .lg-name {
   font-size: 25rpx;
-  color: #6E6569;
+  color: var(--ink-2);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -110,7 +110,7 @@
 .lg-pct {
   font-size: 25rpx;
   font-weight: 600;
-  color: #3A3336;
+  color: var(--ink);
   margin-left: 10rpx;
 }
 
@@ -129,39 +129,41 @@
   align-items: center;
   margin-bottom: 12rpx;
 }
-.rk-emoji {
-  font-size: 32rpx;
+.rk-ico {
+  width: 40rpx;
+  height: 40rpx;
   margin-right: 12rpx;
+  flex-shrink: 0;
 }
 .rk-name {
   font-size: 28rpx;
   font-weight: 600;
-  color: #3A3336;
+  color: var(--ink);
 }
 .rk-count {
   font-size: 21rpx;
-  color: #B9AFB4;
+  color: var(--ink-3);
   margin-left: 12rpx;
-  background: #F5F0EC;
+  background: var(--bg-2);
   padding: 2rpx 12rpx;
-  border-radius: 14rpx;
+  border-radius: var(--r-chip);
 }
 .rk-amt {
   margin-left: auto;
   font-size: 29rpx;
   font-weight: 700;
-  color: #3A3336;
+  color: var(--ink);
 }
 .rk-pct {
   width: 84rpx;
   text-align: right;
   font-size: 24rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
 }
 .rk-bar {
   height: 14rpx;
   border-radius: 7rpx;
-  background: #F5F0EC;
+  background: var(--bg-2);
   overflow: hidden;
 }
 .rk-fill {
@@ -174,28 +176,28 @@
 .rk-detail {
   margin-top: 16rpx;
   padding: 6rpx 20rpx;
-  background: #F5F0EC;
-  border-radius: 20rpx;
+  background: var(--bg-2);
+  border-radius: var(--r-ctrl);
 }
 .rd-row {
   display: flex;
   align-items: center;
   padding: 16rpx 0;
-  border-bottom: 2rpx solid #F0E9E5;
+  border-bottom: 2rpx solid var(--line);
 }
 .rd-row:last-child {
   border-bottom: none;
 }
 .rd-date {
   font-size: 22rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   width: 170rpx;
   flex-shrink: 0;
 }
 .rd-note {
   flex: 1;
   font-size: 25rpx;
-  color: #3A3336;
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -203,14 +205,14 @@
 .rd-amt {
   font-size: 25rpx;
   font-weight: 600;
-  color: #6E6569;
+  color: var(--ink-2);
   margin-left: 12rpx;
 }
 
 .tap-hint {
   text-align: center;
   font-size: 22rpx;
-  color: #B9AFB4;
+  color: var(--ink-3);
   padding-top: 24rpx;
 }
 
@@ -226,7 +228,7 @@
 .cb-name {
   font-size: 27rpx;
   font-weight: 600;
-  color: #3A3336;
+  color: var(--ink);
 }
 .cb-right {
   margin-left: auto;
@@ -236,11 +238,11 @@
 .cb-amt {
   font-size: 28rpx;
   font-weight: 700;
-  color: #3A3336;
+  color: var(--ink);
 }
 .cb-of {
   font-size: 22rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   margin-left: 6rpx;
 }
 .cb-foot {
@@ -251,19 +253,19 @@
 }
 .cb-pct {
   font-size: 22rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
 }
 .cb-pct.warn {
-  color: #DB9430;
+  color: var(--amber);
   font-weight: 600;
 }
 .cb-pct.over {
-  color: #D95A54;
+  color: var(--danger);
   font-weight: 600;
 }
 .cb-tip {
   font-size: 22rpx;
-  color: #B9AFB4;
+  color: var(--ink-3);
 }
 
 /* ============ 趋势 ============ */
@@ -295,15 +297,15 @@
 }
 .tr-x {
   font-size: 21rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   margin-top: 12rpx;
 }
 .tr-x.cur {
-  color: #EE7396;
+  color: var(--pink);
   font-weight: 700;
 }
 .trend-foot {
   font-size: 24rpx;
-  color: #6E6569;
+  color: var(--ink-2);
   margin-top: 8rpx;
 }

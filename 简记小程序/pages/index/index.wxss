@@ -5,19 +5,19 @@
   position: relative;
   margin: 24rpx 28rpx 0;
   padding: 36rpx 36rpx 34rpx;
-  border-radius: 36rpx;
+  border-radius: var(--r-card);
   overflow: hidden;
   color: #FFFFFF;
-  background: linear-gradient(135deg, #F2A0B5 0%, #EE7396 52%, #DE5E82 100%);
-  box-shadow: 0 16rpx 36rpx rgba(239, 84, 120, 0.28);
+  background: var(--accent-solid);
+  box-shadow: var(--sh-pop);
 }
 .hero.tone-warn {
-  background: linear-gradient(135deg, #F3C98C 0%, #E9A23B 52%, #DB9430 100%);
-  box-shadow: 0 16rpx 36rpx rgba(232, 131, 42, 0.26);
+  background: var(--amber-solid);
+  box-shadow: var(--sh-pop);
 }
 .hero.tone-over {
-  background: linear-gradient(135deg, #F08C86 0%, #ED6A63 52%, #D05A55 100%);
-  box-shadow: 0 16rpx 36rpx rgba(239, 83, 80, 0.28);
+  background: var(--danger-solid);
+  box-shadow: var(--sh-pop);
 }
 
 .hero-mask1 {
@@ -54,7 +54,7 @@
 .hero-pill {
   font-size: 23rpx;
   padding: 7rpx 20rpx;
-  border-radius: 22rpx;
+  border-radius: var(--r-chip);
   background: rgba(255, 255, 255, 0.24);
 }
 .hero-pill:active {
@@ -89,7 +89,7 @@
 }
 .hero .bar-fill {
   background: #FFFFFF;
-  border-radius: 8rpx;
+  border-radius: var(--r-ctrl);
 }
 
 .hero-meta {
@@ -138,9 +138,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 24rpx 30rpx;
-  border-radius: 26rpx;
+  border-radius: var(--r-ctrl);
   background: rgba(255, 255, 255, 0.96);
-  color: #D65C80;
+  color: var(--accent-solid);
   font-size: 27rpx;
   font-weight: 600;
 }
@@ -158,16 +158,16 @@
   align-items: flex-start;
   margin-top: 22rpx;
   padding: 26rpx 26rpx 26rpx 24rpx;
-  border-radius: 28rpx;
+  border-radius: var(--r-card);
 }
 .alert.tone-ok {
-  background: #E8F7F2;
+  background: var(--mint-soft);
 }
 .alert.tone-warn {
-  background: #FEF4E4;
+  background: var(--amber-soft);
 }
 .alert.tone-over {
-  background: #FDEDEC;
+  background: var(--danger-soft);
 }
 .alert-badge {
   font-size: 36rpx;
@@ -182,17 +182,17 @@
 .alert-title {
   font-size: 28rpx;
   font-weight: 700;
-  color: #3A3336;
+  color: var(--ink);
   margin-bottom: 6rpx;
 }
 .alert-text {
   font-size: 24rpx;
-  color: #6E6569;
+  color: var(--ink-2);
   line-height: 1.6;
 }
 .alert-go {
   font-size: 38rpx;
-  color: #C4BABF;
+  color: var(--ink-3);
   align-self: center;
   margin-left: 12rpx;
   flex-shrink: 0;
@@ -217,25 +217,25 @@
   width: 152rpx;
   height: 152rpx;
   margin-right: 16rpx;
-  border-radius: 26rpx;
-  border: 3rpx dashed #F4B8C7;
-  background: #FEF5F8;
+  border-radius: var(--r-card);
+  border: 3rpx dashed var(--pink);
+  background: var(--pink-mist);
   flex-shrink: 0;
 }
 .q-add:active {
-  background: #FBE7EE;
+  background: var(--pink-soft);
   transform: scale(0.97);
 }
 .q-add-plus {
   font-size: 48rpx;
   font-weight: 300;
-  color: #EE7396;
+  color: var(--pink);
   line-height: 1;
 }
 .q-add-txt {
   font-size: 24rpx;
   font-weight: 600;
-  color: #EE7396;
+  color: var(--pink);
   margin-top: 8rpx;
 }
 
@@ -248,23 +248,24 @@
   height: 152rpx;
   padding: 0 22rpx;
   margin-right: 16rpx;
-  border-radius: 26rpx;
-  background: #FFFFFF;
-  border: 2rpx solid #F0E9E5;
-  box-shadow: 0 3rpx 12rpx rgba(214, 158, 168, 0.08);
+  border-radius: var(--r-card);
+  background: var(--card);
+  border: 2rpx solid var(--line);
+  box-shadow: var(--sh-card);
   flex-shrink: 0;
 }
 .q-on {
-  background: #FEF2F6;
+  background: var(--pink-soft);
   transform: scale(0.97);
 }
-.q-emoji {
-  font-size: 36rpx;
-  line-height: 1;
+.q-ico {
+  width: 40rpx;
+  height: 40rpx;
+  flex-shrink: 0;
 }
 .q-note {
   font-size: 23rpx;
-  color: #6E6569;
+  color: var(--ink-2);
   margin-top: 8rpx;
   max-width: 176rpx;
   overflow: hidden;
@@ -274,13 +275,13 @@
 .q-amt {
   font-size: 25rpx;
   font-weight: 700;
-  color: #D65C80;
+  color: var(--pink);
   margin-top: 4rpx;
 }
 
 .quick-sub {
   font-size: 22rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   margin-top: 14rpx;
 }
 
@@ -290,9 +291,9 @@
   align-items: center;
   margin-top: 26rpx;
   padding: 30rpx 0;
-  background: #FFFFFF;
-  border-radius: 28rpx;
-  box-shadow: 0 6rpx 24rpx rgba(214, 158, 168, 0.10);
+  background: var(--card);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-card);
 }
 .stat {
   flex: 1;
@@ -305,21 +306,21 @@
 }
 .stat-k {
   font-size: 23rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   margin-bottom: 10rpx;
 }
 .stat-v {
   font-size: 32rpx;
   font-weight: 700;
-  color: #3A3336;
+  color: var(--ink);
 }
 .stat-v.income {
-  color: #4CBFA3;
+  color: var(--mint);
 }
 .stat-line {
   width: 2rpx;
   height: 56rpx;
-  background: #F0E9E5;
+  background: var(--line);
 }
 
 /* ================= 近 7 天 ================= */
@@ -347,12 +348,12 @@
 .bar-col-fill {
   width: 36rpx;
   min-height: 8rpx;
-  border-radius: 14rpx;
+  border-radius: var(--r-ctrl);
   transition: height 0.4s ease;
 }
 .bar-x {
   font-size: 21rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   margin-top: 12rpx;
 }
 .bars-foot {
@@ -360,7 +361,7 @@
   align-items: center;
   justify-content: space-between;
   font-size: 24rpx;
-  color: #6E6569;
+  color: var(--ink-2);
   margin-top: 10rpx;
 }
 
@@ -369,7 +370,7 @@
   display: flex;
   align-items: center;
   padding: 24rpx 0;
-  border-bottom: 2rpx solid #F5F0EC;
+  border-bottom: 2rpx solid var(--line);
 }
 .rec:last-child {
   border-bottom: none;
@@ -380,11 +381,11 @@
 .rec-ico {
   width: 80rpx;
   height: 80rpx;
-  border-radius: 50%;
+  border-radius: var(--r-ctrl);
+  background: var(--bg-2);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 38rpx;
   margin-right: 20rpx;
   flex-shrink: 0;
 }
@@ -395,37 +396,37 @@
 .rec-note {
   font-size: 29rpx;
   font-weight: 500;
-  color: #3A3336;
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .rec-sub {
   font-size: 22rpx;
-  color: #A79DA2;
+  color: var(--ink-3);
   margin-top: 5rpx;
 }
 .rec-amt {
   font-size: 31rpx;
   font-weight: 700;
-  color: #3A3336;
+  color: var(--ink);
   margin-left: 16rpx;
   flex-shrink: 0;
 }
 .rec-amt.income {
-  color: #4CBFA3;
+  color: var(--mint);
 }
 .rec-hint {
   text-align: center;
   font-size: 22rpx;
-  color: #B9AFB4;
+  color: var(--ink-3);
   padding-top: 22rpx;
 }
 
 .foot-tip {
   text-align: center;
   font-size: 22rpx;
-  color: #B9AFB4;
+  color: var(--ink-3);
   padding: 34rpx 40rpx 30rpx;
   line-height: 1.6;
 }

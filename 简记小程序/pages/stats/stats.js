@@ -34,9 +34,7 @@ Page({
   },
 
   onShow() {
-    const t = store.themeClass()
-    if (t !== this.data.theme) this.setData({ theme: t })
-    getApp().syncNavBar()
+    this.applyAppearance()
     // 从记账页返回时重新聚合
     if (this.data.ym) this.load(this.data.ym)
   },
@@ -198,8 +196,11 @@ Page({
 
         const cx = w / 2
         const cy = h / 2
-        const r = Math.min(w, h) / 2 - 7
-        const lw = r * 0.36
+        // 描边外缘 r + lw/2 必须落在 min(w,h)/2 - margin 内，否则会被画布裁成平边
+        const margin = 4
+        const ringRatio = 0.27
+        const r = (Math.min(w, h) / 2 - margin) / (1 + ringRatio / 2)
+        const lw = r * ringRatio
 
         // 底圈
         ctx.beginPath()
@@ -255,5 +256,15 @@ Page({
 
   goBudget() {
     wx.navigateTo({ url: '/pages/budget/budget' })
+  },
+
+  /* 外观模式：刷新根节点 class；不含原生层同步（由 app.syncAppearance 单向驱动） */
+  applyAppearance() {
+    const patch = {}
+    const t = store.themeClass()
+    const m = store.modeClass()
+    if (t !== this.data.theme) patch.theme = t
+    if (m !== this.data.modeClass) patch.modeClass = m
+    if (Object.keys(patch).length) this.setData(patch)
   }
 })

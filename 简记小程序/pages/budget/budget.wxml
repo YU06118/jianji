@@ -1,4 +1,4 @@
-<view class="page {{theme}}">
+<view class="page {{theme}} {{modeClass}}">
 
   <!-- ============ 总预算 ============ -->
   <view class="wrap">
@@ -34,8 +34,8 @@
       <view class="sub">可以只填你在意的那几项，其余留空</view>
 
       <view class="cb-item" wx:for="{{cats}}" wx:key="key">
-        <view class="cb-ico" style="background:{{item.soft}}">
-          <text>{{item.emoji}}</text>
+        <view class="cb-ico">
+          <image class="ico-img" src="/assets/icons/{{item.key}}.svg" mode="aspectFit"/>
         </view>
         <text class="cb-name">{{item.name}}</text>
         <view class="cb-right">

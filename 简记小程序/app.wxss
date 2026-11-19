@@ -1,60 +1,97 @@
-/* app.wxss —— 全局设计系统 v2
+/* app.wxss —— 全局设计系统 v4 · Fluent 2 暗色默认 + 手动外观模式
  * ---------------------------------------------------------------------------
- * 目标人群：25–31 岁年轻妈妈（95 后为主）
- * 设计判断（详见 设计规范.md）：
- *   她们的参考系不是"母婴 App"，是小红书 / 小宇宙 / Flomo。
- *   要的是「干净、松弛、有一点质感」，不是「粉、甜、花」。
- *   → 大面积奶油白打底，彩色只做点缀；降饱和一档；留白给足；字号对比拉开。
- * 换色不换名：旧的 --pink / --mint 等名字保留，只调值，
- *   这样所有页面 wxss 自动继承新视觉，零改动、零遗漏。
+ * 主题机制：page 定义浅色基准 + @media 深色兜底；根节点 .mode-dark/.mode-light
+ *   由 JS 按用户外观选择挂载，显式 class 优先于 page 上继承的 media 值。
+ * 双强调色：--pink = 前景（文字/图标，深色提亮）；--accent-solid = 背景（按钮/hero，深底配白字）。
+ * 对比度：所有 solid 背景配白字 ≥4.5:1，--ink-3 各底色 ≥4.5:1（WCAG AA）。
+ * 换色不换名：保留 --pink / --mint 等旧变量名。
  * --------------------------------------------------------------------------- */
 
 page {
-  /* ---------- 底色：奶油白系（不是粉底，也不是冷白） ---------- */
-  --bg: #F2F2F7;          /* systemGray6 分组底 */
-  --bg-2: #E9E9EE;
+  /* ---------- 表面色（浅色基准） ---------- */
+  --bg: #F3F3F3;
+  --bg-2: #EBEBEB;
   --card: #FFFFFF;
-  --line: #E5E5EA;        /* separator */
-  --line-2: #D1D1D6;
+  --line: #E8E8E8;
+  --line-2: #D6D6D6;
 
-  /* ---------- 品牌 · 冷靛蓝（少量强调色，Apple HIG） ---------- */
-  --pink: #4F5BD5;
-  --pink-deep: #3C46B8;
-  --pink-soft: #EDEEFC;
-  --pink-mist: #F6F7FE;
+  /* ---------- 强调色（前景用法） ---------- */
+  --pink: #0078D4;
+  --pink-deep: #005A9E;
+  --pink-soft: #E8F1FB;
+  --pink-mist: #F4F8FD;
+  --accent-solid: #0078D4;   /* 背景用法：配白字 4.5+ */
 
-  /* ---------- 辅助 ---------- */
-  --lilac: #7C86FF;
-  --lilac-soft: #EEF0FF;
+  /* ---------- 辅助强调 ---------- */
+  --lilac: #6B4EFF;
+  --lilac-deep: #5B3FD6;
+  --lilac-soft: #EFEBFF;
 
-  /* ---------- 状态色：支出红 / 收入绿 ---------- */
-  --mint: #2F9E6B;
-  --mint-soft: #E7F5EE;
-  --amber: #C88A2E;
-  --amber-soft: #FBF2E3;
-  --danger: #C1504A;
-  --danger-soft: #FBEAE9;
+  /* ---------- 语义色 ---------- */
+  --mint: #0E7C3A;
+  --mint-soft: #E6F4EB;
+  --mint-solid: #0E7C3A;
+  --amber: #9D5D00;
+  --amber-soft: #FFF4E5;
+  --amber-solid: #9D5D00;
+  --danger: #C42B1C;
+  --danger-soft: #FDE7E5;
+  --danger-solid: #C42B1C;
 
-  /* ---------- 文字：systemLabel 四级 ---------- */
-  --ink: #1D1D1F;
-  --ink-2: rgba(60,60,67,.60);
-  --ink-3: rgba(60,60,67,.30);
+  /* ---------- 文字 ---------- */
+  --ink: #242424;
+  --ink-2: #616161;
+  --ink-3: #686868;          /* 5.57:1 on white / 4.67:1 on bg-2（原 #9D9D9D 仅 2.7:1 不达标） */
 
-  /* ---------- 圆角 / 阴影 / 缓动（HIG 弹簧） ---------- */
-  --r-card: 20rpx;
-  --r-chip: 16rpx;
+  /* ---------- 圆角 / 阴影 / 缓动 ---------- */
+  --r-card: 12rpx;
+  --r-ctrl: 8rpx;
+  --r-chip: 8rpx;
   --r-full: 999rpx;
-  --sh-card: 0 2rpx 10rpx rgba(20,24,40,.04), 0 12rpx 32rpx rgba(20,24,40,.06);
-  --sh-pop: 0 10rpx 26rpx rgba(79, 91, 213, .26);
-  --ease: cubic-bezier(.22, 1, .36, 1);
-  --bounce: cubic-bezier(.22, 1.2, .36, 1);
+  --sh-card: 0 1rpx 3rpx rgba(0, 0, 0, .04), 0 8rpx 24rpx rgba(0, 0, 0, .05);
+  --sh-pop: 0 6rpx 18rpx rgba(0, 120, 212, .22);
+  --ease: cubic-bezier(.33, 0, .67, 1);
+  --bounce: cubic-bezier(.2, .9, .3, 1.05);
 
   background: var(--bg);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  font-family: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "PingFang SC", sans-serif;
   font-size: 28rpx;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 首屏兜底：JS class 未挂上时跟随系统（page 层，优先级低于根节点 class） ---------- */
+@media (prefers-color-scheme: dark) {
+  page {
+    --bg: #202020;
+    --bg-2: #323232;
+    --card: #2C2C2C;
+    --line: #3F3F3F;
+    --line-2: #595959;
+    --pink: #4CC2FF;
+    --pink-deep: #7CD4FF;
+    --pink-soft: #12364B;
+    --pink-mist: #1A2933;
+    --accent-solid: #0067BC;
+    --lilac: #B39AFF;
+    --lilac-deep: #B39AFF;
+    --lilac-soft: #2E2745;
+    --mint: #6CCB8F;
+    --mint-soft: #1B3A29;
+    --mint-solid: #0A6B31;
+    --amber: #E8B55A;
+    --amber-soft: #3E311A;
+    --amber-solid: #8A5400;
+    --danger: #FF7B66;
+    --danger-soft: #47231E;
+    --danger-solid: #A82316;
+    --ink: #F5F5F5;
+    --ink-2: #C8C8C8;
+    --ink-3: #9E9E9E;
+    --sh-card: 0 1rpx 3rpx rgba(0, 0, 0, .28), 0 8rpx 24rpx rgba(0, 0, 0, .16);
+    --sh-pop: 0 6rpx 18rpx rgba(0, 0, 0, .38);
+  }
 }
 
 view, text, input, textarea, scroll-view, button {
@@ -62,44 +99,120 @@ view, text, input, textarea, scroll-view, button {
 }
 
 /* =========================================================================
-   主题色：四套预设，只改品牌色一族（辅助色与状态色不动，保证语义稳定）
-   页面根节点绑 class="page {{theme}}"，取值 t-pink / t-lilac / t-blue / t-matcha
+   外观模式：根节点显式 class，重声明全部 token（含阴影）
+   系统深 + 用户浅 时靠子元素声明盖过 page 的继承值
    ========================================================================= */
-/* 默认主题也显式写出来：这样主题选择器里的色卡能各自显示自己的颜色，
-   不会因为继承父级主题而全部变成同一个色 */
-.t-pink {   /* 默认 · 冷靛蓝 */
-  --pink: #4F5BD5;
-  --pink-deep: #3C46B8;
-  --pink-soft: #EDEEFC;
-  --pink-mist: #F6F7FE;
-  --sh-pop: 0 10rpx 26rpx rgba(79, 91, 213, .26);
+.mode-dark {
+  --bg: #202020;
+  --bg-2: #323232;
+  --card: #2C2C2C;
+  --line: #3F3F3F;
+  --line-2: #595959;
+  --pink: #4CC2FF;
+  --pink-deep: #7CD4FF;
+  --pink-soft: #12364B;
+  --pink-mist: #1A2933;
+  --accent-solid: #0067BC;
+  --lilac: #B39AFF;
+  --lilac-deep: #B39AFF;
+  --lilac-soft: #2E2745;
+  --mint: #6CCB8F;
+  --mint-soft: #1B3A29;
+  --mint-solid: #0A6B31;
+  --amber: #E8B55A;
+  --amber-soft: #3E311A;
+  --amber-solid: #8A5400;
+  --danger: #FF7B66;
+  --danger-soft: #47231E;
+  --danger-solid: #A82316;
+  --ink: #F5F5F5;
+  --ink-2: #C8C8C8;
+  --ink-3: #9E9E9E;
+  --sh-card: 0 1rpx 3rpx rgba(0, 0, 0, .28), 0 8rpx 24rpx rgba(0, 0, 0, .16);
+  --sh-pop: 0 6rpx 18rpx rgba(0, 0, 0, .38);
 }
-.t-lilac {  /* 石墨蓝 */
-  --pink: #5B6E8F;
-  --pink-deep: #43536E;
-  --pink-soft: #EDF0F5;
-  --pink-mist: #F6F8FB;
-  --sh-pop: 0 10rpx 26rpx rgba(91, 110, 143, .26);
+.mode-light {
+  --bg: #F3F3F3;
+  --bg-2: #EBEBEB;
+  --card: #FFFFFF;
+  --line: #E8E8E8;
+  --line-2: #D6D6D6;
+  --pink: #0078D4;
+  --pink-deep: #005A9E;
+  --pink-soft: #E8F1FB;
+  --pink-mist: #F4F8FD;
+  --accent-solid: #0078D4;
+  --lilac: #6B4EFF;
+  --lilac-deep: #5B3FD6;
+  --lilac-soft: #EFEBFF;
+  --mint: #0E7C3A;
+  --mint-soft: #E6F4EB;
+  --mint-solid: #0E7C3A;
+  --amber: #9D5D00;
+  --amber-soft: #FFF4E5;
+  --amber-solid: #9D5D00;
+  --danger: #C42B1C;
+  --danger-soft: #FDE7E5;
+  --danger-solid: #C42B1C;
+  --ink: #242424;
+  --ink-2: #616161;
+  --ink-3: #686868;
+  --sh-card: 0 1rpx 3rpx rgba(0, 0, 0, .04), 0 8rpx 24rpx rgba(0, 0, 0, .05);
+  --sh-pop: 0 6rpx 18rpx rgba(0, 120, 212, .22);
 }
-.t-blue {   /* 海蓝 */
-  --pink: #2F7FA8;
-  --pink-deep: #246484;
-  --pink-soft: #E7F2F8;
-  --pink-mist: #F3F9FC;
-  --sh-pop: 0 10rpx 26rpx rgba(47, 127, 168, .26);
+
+/* =========================================================================
+   主题色：四套强调色（前景 + solid 背景）
+   注意：不再用 media 定义深色 accent——改为 .mode-dark.t-xxx 复合选择器，
+   避免「系统深 + 用户浅」时 accent 被系统主题污染。
+   ========================================================================= */
+.t-pink {
+  --pink: #0078D4; --pink-deep: #005A9E; --pink-soft: #E8F1FB; --pink-mist: #F4F8FD;
+  --accent-solid: #0078D4; --sh-pop: 0 6rpx 18rpx rgba(0, 120, 212, .22);
 }
-.t-matcha { /* 冷杉绿 */
-  --pink: #2F9E6B;
-  --pink-deep: #247C53;
-  --pink-soft: #E7F5EE;
-  --pink-mist: #F3FAF6;
-  --sh-pop: 0 10rpx 26rpx rgba(47, 158, 107, .26);
+.t-lilac {
+  --pink: #6B4EFF; --pink-deep: #4E38C4; --pink-soft: #EFEBFF; --pink-mist: #F6F4FF;
+  --accent-solid: #6B4EFF; --sh-pop: 0 6rpx 18rpx rgba(107, 78, 255, .22);
+}
+.t-blue {
+  --pink: #00809D; --pink-deep: #006275; --pink-soft: #E5F4F7; --pink-mist: #F2FAFC;
+  --accent-solid: #00758E; --sh-pop: 0 6rpx 18rpx rgba(0, 117, 142, .22);
+}
+.t-matcha {
+  --pink: #0E7C3A; --pink-deep: #0A5E2C; --pink-soft: #E6F4EB; --pink-mist: #F2FAF5;
+  --accent-solid: #0E7C3A; --sh-pop: 0 6rpx 18rpx rgba(14, 124, 58, .22);
+}
+/* 深色档：solid 色配白字均 ≥5.7:1 */
+.mode-dark.t-pink {
+  --pink: #4CC2FF; --pink-deep: #7CD4FF; --pink-soft: #12364B; --pink-mist: #1A2933;
+  --accent-solid: #0067BC;
+}
+.mode-dark.t-lilac {
+  --pink: #B39AFF; --pink-deep: #CBB8FF; --pink-soft: #2E2745; --pink-mist: #221D35;
+  --accent-solid: #6246E0;
+}
+.mode-dark.t-blue {
+  --pink: #4CC9E5; --pink-deep: #7FDBEF; --pink-soft: #123C46; --pink-mist: #1A2E34;
+  --accent-solid: #006B85;
+}
+.mode-dark.t-matcha {
+  --pink: #6CCB8F; --pink-deep: #94DBAB; --pink-soft: #1B3A29; --pink-mist: #1A2E22;
+  --accent-solid: #0A6B31;
 }
 
 /* ---------- 布局 ---------- */
-.page {
+.page, .add-page {
   min-height: 100vh;
   padding-bottom: 60rpx;
+  background: var(--bg);
+  color: var(--ink);
+}
+/* 深底紫→黑渐变：仅 mode-dark（显式深色 / 跟随系统深色）生效；
+   浅色档 mode-light 不命中，回退上面的 var(--bg) 浅底。
+   复合选择器（0,2,0）压过 add.wxss 后加载的 .add-page。 */
+.mode-dark.page,
+.mode-dark.add-page {
+  background: linear-gradient(180deg, #2E2745 0%, #202020 100%);
 }
 .wrap { padding: 0 28rpx; }
 .row { display: flex; align-items: center; }
@@ -109,7 +222,7 @@ view, text, input, textarea, scroll-view, button {
 .flex-1 { flex: 1; min-width: 0; }
 .gap-8 { gap: 16rpx; }
 
-/* ---------- 卡片 ---------- */
+/* ---------- 卡片（Fluent：细描边 + 淡阴影 + 小圆角） ---------- */
 .card {
   background: var(--card);
   border-radius: var(--r-card);
@@ -124,17 +237,17 @@ view, text, input, textarea, scroll-view, button {
   margin-bottom: 24rpx;
   border: 2rpx solid var(--line);
 }
-.card-tap { transition: transform .18s var(--ease), box-shadow .18s var(--ease); }
+.card-tap { transition: transform .16s var(--ease), box-shadow .16s var(--ease); }
 .card-tap.tap-on {
-  transform: scale(.982);
-  box-shadow: 0 2rpx 8rpx rgba(90, 70, 75, .05);
+  transform: scale(.985);
+  box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, .06);
 }
 .card-title { font-size: 30rpx; font-weight: 600; color: var(--ink); margin-bottom: 8rpx; }
 .card-sub { font-size: 24rpx; color: var(--ink-3); }
 
 /* ---------- 文字 ---------- */
-.t-hero { font-size: 76rpx; font-weight: 700; letter-spacing: -2rpx; line-height: 1.1; }
-.t-xl { font-size: 40rpx; font-weight: 700; }
+.t-hero { font-size: 76rpx; font-weight: 600; letter-spacing: -2rpx; line-height: 1.1; }
+.t-xl { font-size: 40rpx; font-weight: 600; }
 .t-lg { font-size: 34rpx; font-weight: 600; }
 .t-md { font-size: 29rpx; font-weight: 500; }
 .t-sm { font-size: 25rpx; }
@@ -143,99 +256,99 @@ view, text, input, textarea, scroll-view, button {
 .muted { color: var(--ink-3); }
 .muted-2 { color: var(--ink-2); }
 .num {
-  font-family: "DIN Alternate", "SF Pro Display", -apple-system, sans-serif;
+  font-family: "Segoe UI Variable", "Segoe UI", -apple-system, sans-serif;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
 
-/* ---------- 按钮：带轻微回弹（95 后对"手感"极敏感） ---------- */
+/* ---------- 按钮（Fluent：圆角矩形、纯色 accent、克制反馈） ---------- */
 .btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 92rpx;
-  border-radius: var(--r-full);
+  height: 88rpx;
+  border-radius: var(--r-ctrl);
   font-size: 30rpx;
   font-weight: 600;
-  transition: transform .16s var(--bounce), opacity .16s var(--ease), box-shadow .16s var(--ease);
+  transition: transform .12s var(--ease), opacity .12s var(--ease), box-shadow .12s var(--ease);
 }
-.btn.tap-on { transform: scale(.955); opacity: .9; }
+.btn.tap-on { transform: scale(.98); opacity: .88; }
 .btn-primary {
-  background: linear-gradient(135deg, rgba(255, 255, 255, .22) 0%, rgba(255, 255, 255, 0) 42%), var(--pink);
-  color: #fff;
+  background: var(--accent-solid);
+  color: #FFFFFF;
   box-shadow: var(--sh-pop);
 }
-.btn-primary.tap-on { box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, .10); }
-.btn-ghost { background: var(--pink-mist); color: var(--pink-deep); }
+.btn-primary.tap-on { background: var(--pink-deep); box-shadow: none; }
+.btn-ghost { background: var(--pink-soft); color: var(--pink-deep); }
 .btn-plain { background: var(--bg-2); color: var(--ink-2); }
-.btn-sm { height: 64rpx; border-radius: var(--r-full); font-size: 26rpx; padding: 0 28rpx; }
+.btn-sm { height: 64rpx; border-radius: var(--r-ctrl); font-size: 26rpx; padding: 0 28rpx; }
 .btn-danger { background: var(--danger-soft); color: var(--danger); }
 .btn-block { width: 100%; }
 
-/* ---------- 分段控件（时间范围 / 收支切换） ---------- */
+/* ---------- 分段控件（Fluent Pivot 观感） ---------- */
 .seg {
   display: flex;
-  padding: 5rpx;
+  padding: 4rpx;
   background: var(--bg-2);
-  border-radius: var(--r-full);
+  border-radius: var(--r-ctrl);
 }
 .seg-item {
   flex: 1;
-  height: 62rpx;
+  height: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 26rpx;
   color: var(--ink-2);
-  border-radius: var(--r-full);
-  transition: all .22s var(--ease);
+  border-radius: 6rpx;
+  transition: all .2s var(--ease);
 }
 .seg-item.on {
-  background: #fff;
-  color: var(--ink);
+  background: var(--card);
+  color: var(--pink-deep);
   font-weight: 600;
-  box-shadow: 0 2rpx 8rpx rgba(90, 70, 75, .08);
+  box-shadow: 0 1rpx 4rpx rgba(0, 0, 0, .10);
 }
 
 /* ---------- 胶囊标签 ---------- */
 .pill {
   display: inline-flex;
   align-items: center;
-  padding: 6rpx 18rpx;
+  padding: 6rpx 16rpx;
   border-radius: var(--r-chip);
   font-size: 22rpx;
   font-weight: 500;
 }
-.pill-ok { background: var(--mint-soft); color: #2E8F77; }
-.pill-warn { background: var(--amber-soft); color: #B87A18; }
-.pill-over { background: var(--danger-soft); color: #C93B38; }
+.pill-ok { background: var(--mint-soft); color: var(--mint); }
+.pill-warn { background: var(--amber-soft); color: var(--amber); }
+.pill-over { background: var(--danger-soft); color: var(--danger); }
 .pill-plain { background: var(--bg-2); color: var(--ink-2); }
 .pill-brand { background: var(--pink-soft); color: var(--pink-deep); }
-.pill-lilac { background: var(--lilac-soft); color: #6F58AE; }
+.pill-lilac { background: var(--lilac-soft); color: var(--lilac-deep); font-size: 24rpx; }
 
 /* ---------- 进度条 ---------- */
-.bar { height: 16rpx; border-radius: 8rpx; background: rgba(255, 255, 255, .45); overflow: hidden; }
+.bar { height: 14rpx; border-radius: 7rpx; background: rgba(255, 255, 255, .35); overflow: hidden; }
 .bar-dark { background: var(--bg-2); }
 .bar-fill {
   height: 100%;
-  border-radius: 8rpx;
+  border-radius: 7rpx;
   background: #fff;
-  transition: width .5s var(--ease);
+  transition: width .4s var(--ease);
 }
-.bar-fill.ok { background: linear-gradient(90deg, #7ED4BB, var(--mint)); }
-.bar-fill.warn { background: linear-gradient(90deg, #F2BE70, var(--amber)); }
-.bar-fill.over { background: linear-gradient(90deg, #F28F89, var(--danger)); }
-.bar-fill.brand { background: linear-gradient(90deg, rgba(255, 255, 255, .5), #fff); }
+.bar-fill.ok { background: var(--mint); }
+.bar-fill.warn { background: var(--amber); }
+.bar-fill.over { background: var(--danger); }
+.bar-fill.brand { background: #fff; }
 
 /* ---------- 分割线 ---------- */
 .hr { height: 2rpx; background: var(--line); margin: 24rpx 0; }
 
 /* ---------- 空状态 ---------- */
 .empty { padding: 100rpx 40rpx; text-align: center; color: var(--ink-3); }
-.empty-emoji { font-size: 96rpx; line-height: 1; margin-bottom: 24rpx; display: block; }
+.empty-emoji { width: 112rpx; height: 112rpx; margin: 0 auto 24rpx; display: block; opacity: .7; }
 .empty-txt { font-size: 27rpx; line-height: 1.7; }
 
-/* ---------- 表单 ---------- */
+/* ---------- 表单（Fluent：标签在上/左，下描边） ---------- */
 .field { display: flex; align-items: center; min-height: 100rpx; border-bottom: 2rpx solid var(--line); }
 .field:last-child { border-bottom: none; }
 .field-label { width: 190rpx; font-size: 28rpx; color: var(--ink-2); flex-shrink: 0; }
@@ -251,34 +364,34 @@ view, text, input, textarea, scroll-view, button {
   min-height: 104rpx;
   padding: 0 30rpx;
   border-bottom: 2rpx solid var(--line);
-  transition: background .16s var(--ease);
+  transition: background .12s var(--ease);
 }
 .list-row:last-child { border-bottom: none; }
 .list-row.tap-on { background: var(--bg-2); }
 .list-row-label { flex: 1; font-size: 29rpx; }
 .list-row-value { font-size: 27rpx; color: var(--ink-3); }
-.chev { color: #C8BEC2; font-size: 30rpx; margin-left: 10rpx; }
+.chev { color: var(--ink-3); font-size: 30rpx; margin-left: 10rpx; }
 
-/* ---------- 图标圆底 ---------- */
+/* ---------- 图标容器（Fluent：微圆角方块 + 淡底，图标为 SVG） ---------- */
 .ico {
   width: 76rpx;
   height: 76rpx;
-  border-radius: 50%;
+  border-radius: var(--r-ctrl);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 38rpx;
   flex-shrink: 0;
 }
+.ico-img { width: 44rpx; height: 44rpx; display: block; }
 
-/* ---------- 底部弹层（小程序的"半屏抽屉"） ---------- */
+/* ---------- 底部弹层（半屏抽屉） ---------- */
 .sheet-mask {
   position: fixed;
   left: 0; right: 0; top: 0; bottom: 0;
-  background: rgba(58, 51, 54, .38);
+  background: rgba(0, 0, 0, .4);
   z-index: 90;
   opacity: 0;
-  transition: opacity .22s var(--ease);
+  transition: opacity .2s var(--ease);
 }
 .sheet-mask.show { opacity: 1; }
 .sheet {
@@ -286,10 +399,10 @@ view, text, input, textarea, scroll-view, button {
   left: 0; right: 0; bottom: 0;
   z-index: 91;
   background: var(--card);
-  border-radius: 36rpx 36rpx 0 0;
+  border-radius: 16rpx 16rpx 0 0;
   padding: 32rpx 32rpx 0;
   transform: translateY(100%);
-  transition: transform .3s var(--ease);
+  transition: transform .26s var(--ease);
   padding-bottom: calc(32rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
 }
@@ -302,12 +415,12 @@ view, text, input, textarea, scroll-view, button {
   margin: 0 auto 24rpx;
 }
 
-/* ---------- 骨架屏（比 loading 转圈更有质感） ---------- */
+/* ---------- 骨架屏 ---------- */
 .sk {
-  background: linear-gradient(90deg, var(--bg-2) 25%, #FAF6F4 37%, var(--bg-2) 63%);
+  background: linear-gradient(90deg, var(--bg-2) 25%, var(--card) 37%, var(--bg-2) 63%);
   background-size: 400% 100%;
   animation: sk-shine 1.3s ease-in-out infinite;
-  border-radius: 12rpx;
+  border-radius: var(--r-ctrl);
 }
 .sk-line { height: 26rpx; margin-bottom: 16rpx; }
 .sk-line.w60 { width: 60%; }
@@ -317,11 +430,11 @@ view, text, input, textarea, scroll-view, button {
   100% { background-position: 0 50%; }
 }
 
-/* ---------- 点头像 / 心情贴纸 ---------- */
+/* ---------- 头像 / 贴纸 ---------- */
 .avatar {
   width: 88rpx;
   height: 88rpx;
-  border-radius: 34rpx;
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -335,14 +448,14 @@ view, text, input, textarea, scroll-view, button {
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
 }
 
-/* ---------- 动画 ---------- */
+/* ---------- 动画（Fluent：淡入 + 轻微上移，克制） ---------- */
 @keyframes rise {
-  from { opacity: 0; transform: translateY(16rpx); }
+  from { opacity: 0; transform: translateY(10rpx); }
   to { opacity: 1; transform: translateY(0); }
 }
-.rise { animation: rise .34s var(--ease) both; }
-.rise-2 { animation: rise .34s var(--ease) .06s both; }
-.rise-3 { animation: rise .34s var(--ease) .12s both; }
+.rise { animation: rise .26s var(--ease) both; }
+.rise-2 { animation: rise .26s var(--ease) .05s both; }
+.rise-3 { animation: rise .26s var(--ease) .1s both; }
 
 /* 尊重系统「减弱动态效果」设置 */
 @media (prefers-reduced-motion: reduce) {

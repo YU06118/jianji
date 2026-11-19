@@ -1,4 +1,4 @@
-<view class="page {{theme}}">
+<view class="page {{theme}} {{modeClass}}">
 
   <!-- ============ 汇总 ============ -->
   <view class="hero">
@@ -23,7 +23,7 @@
   <view class="wrap">
     <view class="gcard" wx:for="{{goals}}" wx:key="id">
       <view class="gc-head" bindtap="openEdit" data-i="{{index}}">
-        <view class="gc-ico" style="background:{{item.soft}}">
+        <view class="gc-ico">
           <text>{{item.emoji}}</text>
         </view>
         <view class="gc-title">
@@ -49,7 +49,7 @@
     </view>
 
     <view class="empty" wx:if="{{!goals.length}}">
-      <text class="empty-emoji">🐷</text>
+      <image class="empty-emoji" src="/assets/icons/empty-pig.svg" mode="aspectFit"/>
       <view class="empty-txt">还没有攒钱目标</view>
       <view class="empty-txt">宝宝教育金、家庭旅行、换台冰箱……</view>
       <view class="empty-txt">写下来，才知道每个月该留多少</view>

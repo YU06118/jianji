@@ -27,9 +27,7 @@ Page({
 
   onShow() {
     store.initIfEmpty()
-    const t = store.themeClass()
-    if (t !== this.data.theme) this.setData({ theme: t })
-    getApp().syncNavBar()
+    this.applyAppearance()
     this.load()
   },
 
@@ -257,5 +255,15 @@ Page({
     })
     this.setData({ sheetMode: '' })
     this.load()
+  },
+
+  /* 外观模式：刷新根节点 class；不含原生层同步（由 app.syncAppearance 单向驱动） */
+  applyAppearance() {
+    const patch = {}
+    const t = store.themeClass()
+    const m = store.modeClass()
+    if (t !== this.data.theme) patch.theme = t
+    if (m !== this.data.modeClass) patch.modeClass = m
+    if (Object.keys(patch).length) this.setData(patch)
   }
 })

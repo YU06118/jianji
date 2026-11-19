@@ -198,6 +198,7 @@ function cleanSettings(s) {
   }
   if (typeof s.nickname === 'string') out.nickname = cleanText(s.nickname, 12)
   if (typeof s.theme === 'string' && /^[a-z]{2,12}$/.test(s.theme)) out.theme = s.theme
+  if (['dark', 'light', 'system'].indexOf(s.appearance) >= 0) out.appearance = s.appearance
   return out
 }
 
