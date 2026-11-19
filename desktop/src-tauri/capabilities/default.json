@@ -9,6 +9,7 @@
     "fs:default",
     "updater:default",
     "process:default",
+    "notification:default",
     {
       "identifier": "fs:scope",
       "allow": ["$APPDATA/**", "$RESOURCE/**"]

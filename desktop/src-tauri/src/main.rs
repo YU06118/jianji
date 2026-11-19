@@ -210,6 +210,7 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let appdata = app.path().app_data_dir().expect("app data dir");
             fs::create_dir_all(&appdata).expect("create app data dir");
@@ -218,6 +219,39 @@ fn main() {
             db::init(&conn).expect("init db");
             app.manage(AppState { conn: Mutex::new(conn), appdata });
             app.manage(UpdaterState { pending: Mutex::new(None) });
+
+            // 每日记账提醒：独立线程每 15 秒轮询设置，按 HH:MM 匹配并当日去重。
+            // 用 Rust 线程而非 JS setInterval（窗口隐藏时 WebView2 会节流后台定时器）。
+            let handle = app.handle().clone();
+            std::thread::spawn(move || {
+                use chrono::Timelike;
+                use tauri_plugin_notification::NotificationExt;
+                loop {
+                    std::thread::sleep(std::time::Duration::from_secs(15));
+                    let state = match handle.try_state::<AppState>() { Some(s) => s, None => continue };
+                    let conn = match state.conn.lock() { Ok(c) => c, Err(_) => continue };
+                    let enabled = db::get_setting(&conn, "remind_daily_enabled").ok().flatten().unwrap_or_else(|| "1".into());
+                    if enabled != "1" { continue; }
+                    let time_str = db::get_setting(&conn, "remind_daily_time").ok().flatten().unwrap_or_else(|| "21:00".into());
+                    let parts: Vec<&str> = time_str.split(':').collect();
+                    if parts.len() != 2 { continue; }
+                    let hh: u32 = match parts[0].parse() { Ok(v) => v, Err(_) => continue };
+                    let mm: u32 = match parts[1].parse() { Ok(v) => v, Err(_) => continue };
+                    if hh > 23 || mm > 59 { continue; }
+                    let now = chrono::Local::now();
+                    if now.hour() != hh || now.minute() != mm { continue; }
+                    let today = now.format("%Y-%m-%d").to_string();
+                    let fired = db::get_setting(&conn, "remind_daily_last_fired").ok().flatten();
+                    if fired.as_deref() == Some(today.as_str()) { continue; }
+                    let _ = db::set_setting(&conn, "remind_daily_last_fired", &today);
+                    drop(conn);
+                    let _ = handle.notification()
+                        .builder()
+                        .title("简记 · 记账提醒")
+                        .body("今天记一笔了吗？花 3 秒记下今日收支。")
+                        .show();
+                }
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

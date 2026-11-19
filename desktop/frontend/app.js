@@ -17,7 +17,44 @@
   const money = n => '¥ ' + (Number(n) || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const uid = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-  const catColor = {}
+  const fmt2 = n => (Number(n) || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  let catColor = {}
+
+  // ---------- 设置读写（顶层共用；浏览器降级用 localStorage）----------
+  const getSet = async k => {
+    if (!IN_TAURI) { try { return localStorage.getItem('jianji_set_' + k) } catch (e) { return null } }
+    try { return await invoke('get_setting', { key: k }) } catch (e) { return null }
+  }
+  const setSet = (k, v) => IN_TAURI
+    ? invoke('set_setting', { key: k, value: String(v) })
+    : Promise.resolve().then(() => localStorage.setItem('jianji_set_' + k, String(v)))
+
+  // ---------- 自绘确认/输入框（WebView2 下原生 confirm/prompt 不可靠）----------
+  function askConfirm(title, msg, opts) {
+    opts = opts || {}
+    return new Promise(resolve => {
+      const mask = document.getElementById('confirm-modal')
+      if (!mask) { resolve(opts.input ? null : false); return }
+      document.getElementById('cf-title').textContent = title
+      document.getElementById('cf-msg').textContent = msg
+      const input = document.getElementById('cf-input')
+      if (opts.input) { input.style.display = ''; input.value = opts.inputValue || ''; input.placeholder = opts.input || '' }
+      else { input.style.display = 'none'; input.value = '' }
+      const ok = document.getElementById('cf-ok'), cancel = document.getElementById('cf-cancel')
+      ok.textContent = opts.okText || '确定'
+      ok.className = 'modal-btn ' + (opts.danger ? 'danger' : 'primary')
+      mask.classList.add('show')
+      if (opts.input) setTimeout(() => input.focus(), 30)
+      const done = v => {
+        mask.classList.remove('show')
+        ok.onclick = cancel.onclick = mask.onclick = null
+        resolve(v)
+      }
+      ok.onclick = () => done(opts.input ? input.value : true)
+      cancel.onclick = () => done(opts.input ? null : false)
+      mask.onclick = e => { if (e.target === mask) done(opts.input ? null : false) }
+    })
+  }
 
   // ---------- 预设分类（与 SQLite 初始化一致）----------
   const PRESET_OUT = [
@@ -28,9 +65,26 @@
   const PRESET_IN = [
     ['salary', '💰', '工资', '#34C759'], ['bonus', '🎁', '奖金', '#FFCC00'], ['redpack', '🧧', '红包', '#D9736E'], ['other_in', '📥', '其他', '#A79DA2']
   ]
-  let catsOut = PRESET_OUT.map(([id, e, n, c]) => ({ id, e, n, c })),
-      catsIn = PRESET_IN.map(([id, e, n, c]) => ({ id, e, n, c }))
+  let catsOut = PRESET_OUT.map(([id, e, n, c]) => ({ id, e, n, c, kind: 'expense', custom: false })),
+      catsIn = PRESET_IN.map(([id, e, n, c]) => ({ id, e, n, c, kind: 'income', custom: false }))
   PRESET_OUT.concat(PRESET_IN).forEach(([id, , , c]) => catColor[id] = c)
+
+  const toUiCat = c => ({ id: c.id, e: c.icon, n: c.name, c: c.color, custom: !!c.custom, kind: c.kind })
+  const toRustCat = c => ({ id: c.id, name: c.n, kind: c.kind, icon: c.e, color: c.c, custom: c.custom ? 1 : 0 })
+  const cid = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+  async function loadCategories() {
+    if (!IN_TAURI) return   // 降级：保留硬编码预设
+    try {
+      const rows = await invoke('list_categories')
+      if (!rows || !rows.length) return
+      const ui = rows.map(toUiCat)
+      catsOut = ui.filter(c => c.kind === 'expense')
+      catsIn = ui.filter(c => c.kind === 'income')
+      catColor = {}
+      rows.forEach(c => catColor[c.id] = c.color)
+      renderPick()
+    } catch (e) { /* 失败保留硬编码预设，不阻塞启动 */ }
+  }
 
   // ---------- 数据层 ----------
   let txs = []          // UI 形态：{id,ic,bg,n,note,amt,out,t,ts,date,cat,image,deleted,_i}
@@ -106,7 +160,7 @@
       <div class="meta"><b>${esc(x.n)}</b><span>${x.t} · ${esc(x.note)}</span></div>
       ${x.image ? '<div class="thumb" title="含小票图片">▧</div>' : ''}
       <div class="money ${x.out ? 'out' : 'in'}">${x.out ? '−' : '+'} ${money(x.amt)}</div>
-      ${del ? `<button class="del" title="删除" data-id="${x.id}">✕</button>` : ''}</div>`
+      ${del ? `<button class="edit" title="编辑" data-id="${x.id}">✎</button><button class="del" title="删除" data-id="${x.id}">✕</button>` : ''}</div>`
   }
   function groupByDate(list, del) {
     if (!list.length) return '<div style="padding:24px;text-align:center;color:var(--label3);font-size:13px">暂无记录</div>'
@@ -116,14 +170,15 @@
       `<div class="date-group"><div class="date-label"><span>${k}</span><span>${groups[k].length} 笔</span></div>${groups[k].map(x => txRow(x, del)).join('')}</div>`
     ).join('')
   }
+  let trashView = false
   function render() {
     const live = txs.filter(x => !x.deleted)
     txs.forEach((x, i) => x._i = i)
     document.getElementById('recentList').innerHTML = groupByDate(live.slice(0, 5), false)
-    document.getElementById('fullList').innerHTML = groupByDate(txs, true)
+    document.getElementById('fullList').innerHTML = groupByDate(trashView ? txs.filter(x => x.deleted) : live, true)
     document.getElementById('txCount').textContent = live.length
-    // 绑定删除按钮
-    document.querySelectorAll('#fullList .del').forEach(b => b.onclick = () => trashRecord(b.dataset.id, 1))
+    const et = document.getElementById('emptyTrash')
+    if (et) et.textContent = `回收站（${txs.length - live.length}）`
     // 汇总
     const inc = sumYuan(live.filter(x => !x.out).map(x => x.amt))
     const exp = sumYuan(live.filter(x => x.out).map(x => x.amt))
@@ -226,15 +281,44 @@
     if (activeFilter === '支出') list = txs.filter(x => x.out)
     if (activeFilter === '收入') list = txs.filter(x => !x.out)
     document.getElementById('fullList').innerHTML = groupByDate(list, true)
-    document.querySelectorAll('#fullList .del').forEach(b => b.onclick = () => trashRecord(b.dataset.id, 1))
   })
-  document.querySelector('.search').onclick = () => {
-    const kw = prompt('输入备注关键词搜索：')
-    if (!kw) return
-    const list = txs.filter(x => (x.note || '').toLowerCase().includes(kw.toLowerCase()))
+  document.querySelector('.search').onclick = async () => {
+    const kw = await askConfirm('搜索记录', '输入备注关键词（留空显示全部）：', { input: '备注关键词', okText: '搜索' })
+    if (kw === null) return
+    const list = kw ? txs.filter(x => (x.note || '').toLowerCase().includes(kw.toLowerCase())) : txs
     document.getElementById('fullList').innerHTML = groupByDate(list, true)
-    document.querySelectorAll('#fullList .del').forEach(b => b.onclick = () => trashRecord(b.dataset.id, 1))
     document.querySelector('.nav button[data-v="list"]').click()
+  }
+  // fullList 统一事件委托（编辑/删除/恢复），innerHTML 重渲染不丢事件
+  document.getElementById('fullList').addEventListener('click', async e => {
+    const ed = e.target.closest('.edit')
+    if (ed) {
+      const rec = txs.find(x => x.id === ed.dataset.id)
+      if (rec) openEditor(rec)
+      return
+    }
+    const del = e.target.closest('.del')
+    if (del) {
+      if (trashView) { await trashRecord(del.dataset.id, 0); toast('记录已恢复'); return }
+      const ok = await askConfirm('删除记录', '确定删除这笔记录？可在回收站恢复。', { danger: true, okText: '删除' })
+      if (ok) await trashRecord(del.dataset.id, 1)
+    }
+  })
+  // 回收站切换 / 清空
+  const emptyTrashEl = document.getElementById('emptyTrash')
+  if (emptyTrashEl) emptyTrashEl.onclick = () => {
+    trashView = !trashView
+    const purge = document.getElementById('purgeTrash')
+    if (purge) purge.style.display = trashView ? '' : 'none'
+    render()
+    toast(trashView ? '回收站：点 ✕ 恢复记录' : '已返回明细')
+  }
+  const purgeEl = document.getElementById('purgeTrash')
+  if (purgeEl) purgeEl.onclick = async () => {
+    const ok = await askConfirm('清空回收站', '物理删除所有已删除的记录，此操作不可恢复。', { danger: true, okText: '清空' })
+    if (!ok) return
+    await purgeTrash()
+    toast('回收站已清空')
   }
 
   // ---------- 统计（Q9/Q10）----------
@@ -242,10 +326,29 @@
     const live = txs.filter(x => !x.deleted)
     const dim = (document.querySelector('#segTime button.on') || {}).textContent || '月'
     let list = live
-    if (dim === '月') { const ym = new Date().toISOString().slice(0, 7); list = live.filter(x => x.date.startsWith(ym)) }
+    if (dim === '周') {
+      const n = new Date(), day = (n.getDay() + 6) % 7   // 周一=0
+      n.setDate(n.getDate() - day); const start = n.toISOString().slice(0, 10)
+      list = live.filter(x => x.date >= start)
+    }
+    else if (dim === '月') { const ym = new Date().toISOString().slice(0, 7); list = live.filter(x => x.date.startsWith(ym)) }
     else if (dim === '年') { const y = new Date().getFullYear(); list = live.filter(x => x.date.startsWith(String(y))) }
     else if (dim === '近3年') { const y = new Date().getFullYear() - 2; list = live.filter(x => +x.date.slice(0, 4) >= y) }
     else if (dim === '近5年') { const y = new Date().getFullYear() - 4; list = live.filter(x => +x.date.slice(0, 4) >= y) }
+    // 三张大卡：与下方图表同口径，全部基于 list（真实数据）
+    const incC = list.filter(x => !x.out).reduce((a, x) => a + toCents(x.amt), 0)
+    const expC = list.filter(x => x.out).reduce((a, x) => a + toCents(x.amt), 0)
+    const span = dim === '周' ? 1 : dim === '月' ? 1 : dim === '年' ? 12 : dim === '近3年' ? 36 : dim === '近5年' ? 60 : 1
+    const RANGE = { '周': '本周', '月': '本月', '年': '本年', '近3年': '近3年', '近5年': '近5年' }
+    const rangeLabel = RANGE[dim] || dim
+    const sv = document.querySelectorAll('#v-stats .stats .card .v')
+    if (sv[0]) sv[0].innerHTML = `<span class="cur">¥</span>${fmt2(toYuan(incC))}`
+    if (sv[1]) sv[1].innerHTML = `<span class="cur">¥</span>${fmt2(toYuan(expC))}`
+    if (sv[2]) sv[2].innerHTML = `<span class="cur">¥</span>${fmt2(toYuan(incC - expC))}`
+    const sd = document.querySelectorAll('#v-stats .stats .card .d')
+    if (sd[0]) sd[0].textContent = rangeLabel
+    if (sd[1]) sd[1].textContent = rangeLabel
+    if (sd[2]) sd[2].innerHTML = `${rangeLabel}月均 <b>¥${fmt2(toYuan(Math.round((incC - expC) / span)))}</b>`
     const byCat = {}
     list.filter(x => x.out).forEach(x => byCat[x.cat] = (byCat[x.cat] || 0) + toCents(x.amt))
     const arr = Object.keys(byCat).map(k => {
@@ -276,12 +379,89 @@
   }
 
   // ---------- 分类管理（Q5）----------
+  const ICON_CHOICES = ['🍜', '🥬', '🧴', '👗', '🏠', '🚇', '💊', '🎬', '📚', '📦', '💰', '🎁', '🧧', '💼', '✈️', '☕', '🎮', '🐱', '💇', '🎯']
+  const COLOR_CHOICES = ['#4f5bd5', '#7c86ff', '#34c759', '#ff9500', '#c1504a', '#af52de', '#32ade6', '#ff2d55', '#6FAE5F', '#A79DA2']
   function renderCats() {
-    document.getElementById('catGridOut').innerHTML = catsOut.map(c =>
-      `<div class="catcard"><div class="e" style="background:${c.c}1c">${c.e}</div><b>${esc(c.n)}</b><span>点击编辑</span></div>`).join('')
-    document.getElementById('catGridIn').innerHTML = catsIn.map(c =>
-      `<div class="catcard"><div class="e" style="background:${c.c}1c">${c.e}</div><b>${esc(c.n)}</b><span>点击编辑</span></div>`).join('')
+    const card = c => `<div class="catcard${c.custom ? ' custom' : ''}" data-id="${esc(c.id)}" data-kind="${c.kind}">
+      <div class="e" style="background:${esc(c.c)}1c">${esc(c.e)}</div><b>${esc(c.n)}</b><span>${c.custom ? '自定义 · 编辑' : '点击编辑'}</span></div>`
+    document.getElementById('catGridOut').innerHTML = catsOut.map(card).join('')
+    document.getElementById('catGridIn').innerHTML = catsIn.map(card).join('')
   }
+  let catMode = 'new', catEditing = null, catPickIcon = '🍜', catPickColor = COLOR_CHOICES[0], catPickKind = 'expense'
+  function paintCatChoices() {
+    document.getElementById('cat-icons').innerHTML = ICON_CHOICES.map(x =>
+      `<i class="${x === catPickIcon ? 'on' : ''}" data-v="${x}">${x}</i>`).join('')
+    document.querySelectorAll('#cat-icons i').forEach(i => i.onclick = () => {
+      catPickIcon = i.dataset.v
+      document.querySelectorAll('#cat-icons i').forEach(x => x.classList.remove('on')); i.classList.add('on')
+    })
+    document.getElementById('cat-colors').innerHTML = COLOR_CHOICES.map(x =>
+      `<i class="${x === catPickColor ? 'on' : ''}" data-v="${x}" style="background:${x}"></i>`).join('')
+    document.querySelectorAll('#cat-colors i').forEach(i => i.onclick = () => {
+      catPickColor = i.dataset.v
+      document.querySelectorAll('#cat-colors i').forEach(x => x.classList.remove('on')); i.classList.add('on')
+    })
+  }
+  function openCatModal(mode, c) {
+    catMode = mode; catEditing = c || null
+    catPickKind = c ? c.kind : 'expense'
+    catPickIcon = c ? c.e : '🍜'
+    catPickColor = c ? c.c : COLOR_CHOICES[0]
+    document.getElementById('cat-modal-title').textContent = c ? '编辑分类' : '新建分类'
+    document.getElementById('cat-name').value = c ? c.n : ''
+    document.querySelectorAll('#cat-kind button').forEach(b => b.classList.toggle('on', b.dataset.k === catPickKind))
+    document.getElementById('cat-del').style.display = (c && c.custom) ? '' : 'none'
+    paintCatChoices()
+    document.getElementById('cat-modal').classList.add('show')
+  }
+  function closeCatModal() { document.getElementById('cat-modal').classList.remove('show') }
+  async function saveCategoryFlow() {
+    const name = document.getElementById('cat-name').value.trim()
+    if (!name) { toast('请输入分类名称'); return }
+    const c = {
+      id: catEditing ? catEditing.id : cid(), n: name, e: catPickIcon, c: catPickColor,
+      kind: catPickKind, custom: catEditing ? catEditing.custom : true
+    }
+    try {
+      if (IN_TAURI) await invoke('save_category', { category: toRustCat(c) })
+      const list = c.kind === 'expense' ? catsOut : catsIn
+      const idx = list.findIndex(x => x.id === c.id)
+      if (idx >= 0) list[idx] = c; else list.push(c)
+      catColor[c.id] = c.c
+      closeCatModal(); renderCats(); renderPick()
+      toast(catMode === 'edit' ? '分类已更新' : '分类已创建')
+    } catch (e) { toast('保存失败：' + (e && e.message || e)) }
+  }
+  async function deleteCategoryFlow() {
+    if (!catEditing || !catEditing.custom) return
+    const ok = await askConfirm('删除分类', `确定删除「${catEditing.n}」？已使用该分类的记录不会被删除。`, { danger: true, okText: '删除' })
+    if (!ok) return
+    try {
+      if (IN_TAURI) await invoke('delete_category', { id: catEditing.id })
+      const list = catEditing.kind === 'expense' ? catsOut : catsIn
+      const i = list.findIndex(x => x.id === catEditing.id); if (i >= 0) list.splice(i, 1)
+      closeCatModal(); renderCats(); renderPick()
+      toast('分类已删除')
+    } catch (e) { toast('删除失败：' + (e && e.message || e)) }
+  }
+  // 事件委托：绑在容器上，innerHTML 重渲染不丢事件
+  ;['catGridOut', 'catGridIn'].forEach(id => {
+    document.getElementById(id).addEventListener('click', e => {
+      const el = e.target.closest('.catcard'); if (!el) return
+      const list = id === 'catGridOut' ? catsOut : catsIn
+      const c = list.find(x => x.id === el.dataset.id)
+      if (c) openCatModal('edit', c)
+    })
+  })
+  document.getElementById('cat-new').onclick = () => openCatModal('new', null)
+  document.getElementById('cat-cancel').onclick = closeCatModal
+  document.getElementById('cat-modal').onclick = e => { if (e.target.id === 'cat-modal') closeCatModal() }
+  document.getElementById('cat-save').onclick = saveCategoryFlow
+  document.getElementById('cat-del').onclick = deleteCategoryFlow
+  document.querySelectorAll('#cat-kind button').forEach(b => b.onclick = () => {
+    catPickKind = b.dataset.k
+    document.querySelectorAll('#cat-kind button').forEach(x => x.classList.remove('on')); b.classList.add('on')
+  })
 
   // ---------- 记一笔（Q3/Q4）----------
   // 金额单一数据源为 #amt.value；把任意输入规范化为合法金额字符串（纯函数）
@@ -301,16 +481,30 @@
     document.querySelectorAll('.pc').forEach(p => p.onclick = () => { curCat = +p.dataset.i; renderPick() })
   }
   renderPick()
-  document.getElementById('addBtn').onclick = () => {
+  let editingId = null
+  function openEditor(rec) {
+    editingId = rec ? rec.id : null
+    document.getElementById('sheet-title').textContent = rec ? '编辑记录' : '记一笔'
+    document.getElementById('btnDone').textContent = rec ? '保存修改' : '完成'
+    document.getElementById('btnEditDel').style.display = rec ? '' : 'none'
+    document.getElementById('amt').value = rec ? String(rec.amt) : '0'
+    document.getElementById('note').value = rec ? rec.note : ''
+    document.getElementById('tx-date').value = rec ? rec.date : new Date().toISOString().slice(0, 10)
+    pendingImage = rec ? (rec.image || '') : null
+    curType = rec ? (rec.out ? 'out' : 'in') : 'out'
+    const list = curType === 'out' ? catsOut : catsIn
+    const idx = rec ? list.findIndex(c => c.id === rec.cat) : 0
+    curCat = idx >= 0 ? idx : 0
+    document.querySelectorAll('#segType button').forEach(b =>
+      b.classList.toggle('on', (b.textContent === '支出') === (curType === 'out')))
+    renderPick()
     document.getElementById('backdrop').classList.add('show')
-    document.getElementById('amt').value = '0'
-    document.getElementById('note').value = ''
-    pendingImage = null
     setTimeout(() => {
       const el = document.getElementById('amt')
-      el.focus(); el.select()   // 全选 '0'，直接输入即替换
+      el.focus(); el.select()   // 全选，直接输入即替换
     }, 300)
   }
+  document.getElementById('addBtn').onclick = () => openEditor(null)
   document.getElementById('backdrop').onclick = e => { if (e.target.id === 'backdrop') document.getElementById('backdrop').classList.remove('show') }
   document.querySelectorAll('#segType button').forEach(b => b.onclick = () => {
     document.querySelectorAll('#segType button').forEach(x => x.classList.remove('on'))
@@ -338,22 +532,39 @@
   }
   document.getElementById('btnPhoto').onclick = () => pickImage()
   document.getElementById('btnDone').onclick = () => commit()
+  document.getElementById('btnEditDel').onclick = async () => {
+    if (!editingId) return
+    const ok = await askConfirm('删除记录', '确定删除这笔记录？可在回收站恢复。', { danger: true, okText: '删除' })
+    if (!ok) return
+    await trashRecord(editingId, 1)
+    document.getElementById('backdrop').classList.remove('show')
+    editingId = null
+    toast('记录已删除，可在回收站恢复')
+  }
+  async function purgeTrash() {
+    if (IN_TAURI) await invoke('purge_trash')
+    else { const list = LS.get().filter(r => !r.deleted); LS.set(list) }
+    await loadRecords()
+  }
   async function commit() {
     const v = parseFloat(sanitizeAmt(document.getElementById('amt').value))
     if (!v || v <= 0) { toast('请输入金额'); return }
     const list = curType === 'out' ? catsOut : catsIn, c = list[curCat]
+    const keep = editingId ? txs.find(x => x.id === editingId) : null
     const d = new Date()
     const x = {
+      id: editingId || uid(),
       cat: c.id, ic: c.e, bg: c.c + '1f', out: curType === 'out', amt: v,
       note: document.getElementById('note').value || c.n, image: pendingImage || '',
-      date: d.toISOString().slice(0, 10), ts: d.getTime(), deleted: false
+      date: document.getElementById('tx-date').value || d.toISOString().slice(0, 10),
+      ts: keep ? keep.ts : d.getTime(), deleted: keep ? keep.deleted : false
     }
     await saveRecord(x)
-    document.getElementById('note').value = ''
     document.getElementById('amt').value = '0'
     document.getElementById('backdrop').classList.remove('show')
+    editingId = null
     await loadRecords()
-    toast((curType === 'out' ? '支出 ' : '收入 ') + money(v) + ' 已记录')
+    toast(keep ? '修改已保存' : (curType === 'out' ? '支出 ' : '收入 ') + money(v) + ' 已记录')
   }
 
   // ---------- 导出 / 备份（Q12/Q22）----------
@@ -405,15 +616,13 @@
       if ($('upd-version')) $('upd-version').textContent = 'v' + ver
     } catch (e) { /* 版本显示失败不阻塞 */ }
 
-    // 偏好持久化：复用 get_setting/set_setting
-    const getSet = async k => { try { return await invoke('get_setting', { key: k }) } catch (e) { return null } }
-    const setSet = (k, v) => invoke('set_setting', { key: k, value: v }).catch(() => {})
+    // 偏好持久化：复用顶层 getSet/setSet（setSet 失败静默）
     let autoCheck = (await getSet('auto_update_check')) !== '0'   // 默认开
     let src = await getSet('update_source') || 'auto'             // auto | official | mirror
 
     const autoEl = $('upd-auto')
     if (autoEl) autoEl.classList.toggle('on', autoCheck)
-    if (autoEl) autoEl.onclick = () => { autoCheck = !autoCheck; autoEl.classList.toggle('on', autoCheck); setSet('auto_update_check', autoCheck ? '1' : '0') }
+    if (autoEl) autoEl.onclick = () => { autoCheck = !autoCheck; autoEl.classList.toggle('on', autoCheck); setSet('auto_update_check', autoCheck ? '1' : '0').catch(() => {}) }
     const SRC_LABEL = { auto: '自动', official: '官方 GitHub', mirror: '国内镜像' }
     const srcEl = $('upd-src')
     if (srcEl) {
@@ -422,7 +631,7 @@
         const order = ['auto', 'official', 'mirror']
         src = order[(order.indexOf(src) + 1) % order.length]
         srcEl.textContent = SRC_LABEL[src] + ' ›'
-        setSet('update_source', src)
+        setSet('update_source', src).catch(() => {})
         toast('更新下载源：' + SRC_LABEL[src])
       }
     }
@@ -493,7 +702,39 @@
     if (autoCheck) setTimeout(() => checkAndOffer(true), 3000)
   }
 
+  // ---------- 每日提醒设置 ----------
+  async function initReminder() {
+    const toggle = document.getElementById('remind-toggle')
+    const timeEl = document.getElementById('remind-time')
+    const desc = document.getElementById('remind-desc')
+    if (!toggle || !timeEl || !desc) return
+    let enabled = (await getSet('remind_daily_enabled')) !== '0'   // 默认开
+    let time = (await getSet('remind_daily_time')) || '21:00'
+    timeEl.value = /^\d{2}:\d{2}$/.test(time) ? time : '21:00'
+    toggle.classList.toggle('on', enabled)
+    const paint = () => {
+      desc.textContent = IN_TAURI
+        ? `应用运行时每天 ${timeEl.value} 提醒（关闭应用不提醒）`
+        : `浏览器预览：已保存 ${timeEl.value}，不会实际弹通知`
+    }
+    paint()
+    toggle.onclick = async () => {
+      enabled = !enabled; toggle.classList.toggle('on', enabled)
+      try { await setSet('remind_daily_enabled', enabled ? '1' : '0') }
+      catch (e) { enabled = !enabled; toggle.classList.toggle('on', enabled); toast('保存失败，请重试'); return }
+      toast(enabled ? '已开启每日提醒' : '已关闭每日提醒')
+    }
+    timeEl.addEventListener('change', async () => {
+      const v = timeEl.value
+      if (!/^\d{2}:\d{2}$/.test(v)) { toast('时间格式无效'); timeEl.value = time; return }
+      try { await setSet('remind_daily_time', v); time = v; paint(); toast('提醒时间已设为 ' + v) }
+      catch (e) { timeEl.value = time; toast('保存失败，请重试') }
+    })
+  }
+
   // 启动
   loadRecords()
+  loadCategories()
+  initReminder()
   initUpdater()
 })()

@@ -229,7 +229,30 @@ body{
 .modal-btns{display:flex;gap:10px;justify-content:flex-end}
 .modal-btn{border:0;border-radius:10px;padding:9px 18px;font-size:14px;font-weight:600;cursor:pointer}
 .modal-btn.ghost{background:rgba(128,128,128,.15);color:inherit}
-.modal-btn.primary{background:var(--accent,#5b6cff);color:#fff}.badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--foot);color:var(--accent);background:var(--accent-soft);padding:5px 10px;border-radius:20px;font-weight:600}
+.modal-btn.primary{background:var(--accent,#5b6cff);color:#fff}
+.modal-btn.danger{background:var(--expense,#c1504a);color:#fff}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:var(--foot);color:var(--accent);background:var(--accent-soft);padding:5px 10px;border-radius:20px;font-weight:600}
+.modal-input{width:100%;height:38px;border-radius:9px;border:1px solid var(--sep);background:var(--surface);padding:0 12px;font-size:var(--sub);font-family:inherit;color:var(--label);outline:none;margin-bottom:16px}
+.modal-input:focus{border-color:var(--accent)}
+/* 每日提醒时间输入 */
+.time-in{width:92px;height:30px;border:1px solid var(--sep);border-radius:8px;background:var(--surface);color:var(--label);font-family:inherit;font-size:var(--sub);padding:0 6px;outline:none;flex:0 0 92px}
+.time-in:focus{border-color:var(--accent)}
+/* 明细行编辑按钮 */
+.tx .edit{opacity:0;border:0;background:transparent;color:var(--label3);cursor:pointer;font-size:15px;padding:6px;border-radius:6px;transition:opacity .15s,background .15s}
+.tx:hover .edit{opacity:1}.tx .edit:hover{background:var(--accent-soft);color:var(--accent)}
+/* 分类编辑弹窗 */
+.catcard{cursor:pointer}
+.catcard.custom b::after{content:' · 自定义';font-size:10px;color:var(--accent);font-weight:600}
+.cat-form-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.cat-form-label{width:40px;flex:0 0 40px;font-size:var(--sub);color:var(--label2);padding-top:6px}
+.cat-icons{display:flex;flex-wrap:wrap;gap:6px;flex:1;max-height:80px;overflow:auto}
+.cat-icons i{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-style:normal;font-size:17px;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.cat-icons i.on{background:var(--accent-soft);border-color:var(--accent)}
+.cat-colors{display:flex;flex-wrap:wrap;gap:9px;flex:1}
+.cat-colors i{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;box-shadow:inset 0 0 0 1px var(--sep)}
+.cat-colors i.on{border-color:var(--label)}
+.btn-del-op{flex:0 0 88px;border:1px solid var(--sep);background:var(--surface);color:var(--expense)}
+.sheet-cancel{display:block;width:100%;height:32px;margin-top:8px;border:0;background:transparent;color:var(--label2);font-family:inherit;font-size:var(--sub);cursor:pointer}
 </style>
 </head>
 <body>
@@ -308,7 +331,7 @@ body{
 
         <!-- LIST -->
         <section class="view" id="v-list">
-          <div class="page-head"><div><h1>明细</h1><p>共 <span id="txCount">0</span> 笔记录 · 点击删除可移入回收站</p></div><span class="link" id="emptyTrash">回收站（0）</span></div>
+          <div class="page-head"><div><h1>明细</h1><p>共 <span id="txCount">0</span> 笔记录 · 点击删除可移入回收站</p></div><div style="display:flex;gap:16px"><span class="link" id="purgeTrash" style="display:none;color:var(--expense)">清空回收站</span><span class="link" id="emptyTrash">回收站（0）</span></div></div>
           <div class="chips">
             <button class="chip on">全部</button><button class="chip">支出</button><button class="chip">收入</button>
             <button class="chip">本月</button><button class="chip">¥50 – ¥500</button>
@@ -339,7 +362,7 @@ body{
 
         <!-- CATEGORIES -->
         <section class="view" id="v-cats">
-          <div class="page-head"><div><h1>分类</h1><p>预设分类 + 自定义增删改</p></div><button class="btn-primary" onclick="toast('新建分类（原型）')">＋ 新建</button></div>
+          <div class="page-head"><div><h1>分类</h1><p>预设分类 + 自定义增删改</p></div><button class="btn-primary" id="cat-new">＋ 新建</button></div>
           <div class="panel"><div class="sub" style="margin-bottom:14px">支出分类</div><div class="catgrid" id="catGridOut"></div></div>
           <div class="panel" style="margin-top:20px"><div class="sub" style="margin-bottom:14px">收入分类</div><div class="catgrid" id="catGridIn"></div></div>
         </section>
@@ -349,10 +372,10 @@ body{
           <div class="page-head"><div><h1>设置</h1><p>偏好与数据管理</p></div></div>
           <div class="settings">
             <div class="setrow"><div class="si">◐</div><div class="st"><b>外观</b><span>跟随系统深浅色</span></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-            <div class="setrow"><div class="si">◔</div><div class="st"><b>每日记账提醒</b><span>每天 21:00 提醒</span></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="setrow" id="row-remind"><div class="si">◔</div><div class="st"><b>每日记账提醒</b><span id="remind-desc">应用运行时每天 21:00 提醒</span></div><input type="time" id="remind-time" class="time-in" value="21:00" aria-label="提醒时间"><div class="toggle on" id="remind-toggle"></div></div>
             <div class="setrow"><div class="si">▦</div><div class="st"><b>月度账单提醒</b><span>每月 1 日推送上月报表</span></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
             <div class="setrow"><div class="si">↻</div><div class="st"><b>自动云同步</b><span>同步码 · 已关联设备 2 台</span></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
-            <div class="setrow"><div class="si">⤓</div><div class="st"><b>导出数据</b><span>Excel / CSV · PDF 报表 · JSON 备份</span></div><span class="link" onclick="toast('导出面板（原型）')">导出 ›</span></div>
+            <div class="setrow"><div class="si">⤓</div><div class="st"><b>导出数据</b><span>Excel / CSV · PDF 报表 · JSON 备份</span></div><span class="link" id="export-link">导出 ›</span></div>
             <div class="setrow" id="row-upd-version"><div class="si">ⓘ</div><div class="st"><b>当前版本</b><span id="upd-curver">简记</span></div><span class="link" id="upd-version">…</span></div>
             <div class="setrow" id="row-upd-check"><div class="si">↻</div><div class="st"><b>检查更新</b><span id="upd-status">自动下载并静默安装新版本</span></div><span class="link" id="upd-check">立即检查 ›</span></div>
             <div class="setrow" id="row-upd-auto"><div class="si">◔</div><div class="st"><b>自动检查更新</b><span>启动时在后台检查，发现新版再询问</span></div><div class="toggle" id="upd-auto"></div></div>
@@ -369,13 +392,15 @@ body{
 <!-- ADD SHEET -->
 <div class="backdrop" id="backdrop">
   <div class="sheet">
-    <h2>记一笔</h2>
+    <h2 id="sheet-title">记一笔</h2>
     <div class="seg" id="segType"><button class="on">支出</button><button>收入</button></div>
     <div class="amount-box"><span class="cur">¥</span><input id="amt" class="amt-in num" type="text" inputmode="decimal" maxlength="8" autocomplete="off" spellcheck="false" value="0" aria-label="金额"></div>
     <div class="pickcat" id="pickcat"></div>
+    <input type="date" class="note-in" id="tx-date" aria-label="记账日期">
     <input class="note-in" id="note" placeholder="备注：这笔钱花在哪里？">
     <div class="sheet-actions">
-      <button type="button" class="btn-photo" id="btnPhoto">▣ 小票</button>
+      <button type="button" class="btn-photo" id="btnPhoto" style="flex:0 0 76px">▣ 小票</button>
+      <button type="button" class="btn-del-op" id="btnEditDel" style="display:none">删除</button>
       <button type="button" class="btn-done" id="btnDone">完成</button>
     </div>
   </div>
@@ -388,6 +413,33 @@ body{
       <button class="modal-btn ghost" id="upd-modal-cancel">稍后</button>
       <button class="modal-btn primary" id="upd-modal-ok">立即更新</button>
     </div>
+  </div>
+</div>
+<!-- 通用自绘确认框（删除/清空/搜索输入复用；WebView2 下原生 confirm/prompt 不可靠） -->
+<div class="modal-mask" id="confirm-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="cf-title">确认</div>
+    <div class="modal-msg" id="cf-msg"></div>
+    <input class="modal-input" id="cf-input" style="display:none" autocomplete="off">
+    <div class="modal-btns">
+      <button class="modal-btn ghost" id="cf-cancel">取消</button>
+      <button class="modal-btn primary" id="cf-ok">确定</button>
+    </div>
+  </div>
+</div>
+<!-- 分类编辑/新建弹窗 -->
+<div class="backdrop" id="cat-modal">
+  <div class="sheet">
+    <h2 id="cat-modal-title">编辑分类</h2>
+    <div class="seg" id="cat-kind" style="display:flex;margin:14px auto 18px;width:max-content"><button class="on" data-k="expense">支出</button><button data-k="income">收入</button></div>
+    <input class="note-in" id="cat-name" placeholder="分类名称" maxlength="12" autocomplete="off">
+    <div class="cat-form-row"><span class="cat-form-label">图标</span><div class="cat-icons" id="cat-icons"></div></div>
+    <div class="cat-form-row"><span class="cat-form-label">颜色</span><div class="cat-colors" id="cat-colors"></div></div>
+    <div class="sheet-actions">
+      <button type="button" class="btn-del-op" id="cat-del" style="display:none">删除</button>
+      <button type="button" class="btn-done" id="cat-save">保存</button>
+    </div>
+    <button type="button" class="sheet-cancel" id="cat-cancel">取消</button>
   </div>
 </div>
 <div class="toast" id="toast">已记录</div>
