@@ -41,9 +41,19 @@ const unlisten = await window.__TAURI__.event.listen('updater://progress', ({ pa
 `UpdateMeta = { version: string, notes: string, current_version: string }`。
 更新进度事件：`updater://progress` → `{ downloaded: number, total: number }`。
 
+**设置项 key（`get_setting` / `set_setting`）**
+| key | 取值 | 默认 | 说明 |
+|---|---|---|---|
+| `auto_update_check` | `'1'` / `'0'` | `'1'` | 启动时静默检查更新 |
+| `update_source` | `'auto'` / `'official'` / `'mirror'` | `'auto'` | 更新下载源 |
+| `remind_daily_enabled` | `'1'` / `'0'` | `'1'` | 每日记账提醒开关 |
+| `remind_daily_time` | `'HH:MM'` | `'21:00'` | 每日提醒时间（前端设置，Rust 定时器读取） |
+| `remind_daily_last_fired` | `'YYYY-MM-DD'` | — | 当日已提醒标记，Rust 侧写入用于去重 |
+
 **注意事项**
 - 检查更新必须先于下载安装调用，否则返回错误"请先执行检查更新"。
-- WebView2 下原生 `confirm()` / `alert()` 静默失效，前端更新确认框必须用自绘模态框（见 `frontend/index.html`）。
+- WebView2 下原生 `confirm()` / `alert()` / `prompt()` 静默失效，所有确认与输入框必须用自绘模态框（见 `frontend/index.html` 的 `#upd-modal` / `#confirm-modal`）。
+- 每日提醒由 Rust 独立线程每 15 秒轮询 `remind_daily_*` 设置，到点经 `tauri-plugin-notification` 弹系统通知；**仅应用运行时有效**，关闭应用后不提醒。
 - 数据文件：`jianji.db`（SQLite）+ `images\`，均在 `data_dir` 返回的目录。
 
 ## 二、小程序端：`utils/store.js`（数据层）
