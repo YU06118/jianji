@@ -12,6 +12,7 @@
   --accent:#4f5bd5; --accent-soft:rgba(79,91,213,.10);
   --glass:rgba(255,255,255,.72); --glass-line:rgba(255,255,255,.55);
   --shadow:0 24px 70px rgba(20,24,40,.22),0 4px 14px rgba(20,24,40,.08);
+  --win-bg:var(--surface);
   --radius:14px; --sidebar:236px;
   --ease-spring:cubic-bezier(.22,1,.36,1);
   --title:34px; --t1:28px; --t2:22px; --t3:20px; --head:17px; --body:15px; --call:14px; --sub:13px; --foot:12px;
@@ -24,6 +25,7 @@
     --accent:#7c86ff; --accent-soft:rgba(124,134,255,.16);
     --glass:rgba(30,30,34,.72); --glass-line:rgba(255,255,255,.10);
     --shadow:0 24px 70px rgba(0,0,0,.55),0 4px 14px rgba(0,0,0,.3);
+    --win-bg:linear-gradient(180deg,#2E2745 0%,#202020 100%);
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -39,7 +41,7 @@ body{
 .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 .desk{padding:26px;width:100%;height:100%;display:grid;place-items:center}
 .window{
-  width:min(1180px,96vw);height:min(760px,92vh);background:var(--surface);
+  width:min(1180px,96vw);height:min(760px,92vh);background:var(--win-bg);
   border-radius:14px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;
   border:1px solid rgba(255,255,255,.35);
 }
@@ -56,7 +58,7 @@ body{
   background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.28));
   backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
   border-right:1px solid var(--sep)}
-@media(prefers-color-scheme:dark){.sidebar{background:linear-gradient(180deg,rgba(40,40,46,.5),rgba(30,30,36,.28))}}
+@media(prefers-color-scheme:dark){.sidebar{background:linear-gradient(180deg,rgba(46,39,69,.45),rgba(32,32,32,.35))}}
 .brand{display:flex;align-items:center;gap:11px;padding:4px 10px 22px}
 .logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,#5f6ae6,#3944b8);
   display:grid;place-items:center;color:#fff;font-size:19px;font-weight:700;box-shadow:0 4px 10px rgba(60,70,190,.35)}
@@ -74,6 +76,8 @@ body{
 .sidebar-foot{margin-top:auto;font-size:11px;color:var(--label3);padding:12px 12px 2px;line-height:1.6}
 /* ---------- main ---------- */
 .main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--surface2)}
+/* 深色档主区透明以露出窗口紫黑渐变；必须放在基础 .main 之后（同特异性后加载者胜） */
+@media(prefers-color-scheme:dark){.main{background:transparent}}
 .toolbar{height:56px;flex:0 0 56px;display:flex;align-items:center;gap:12px;padding:0 22px;
   background:var(--glass);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);
   border-bottom:1px solid var(--sep);border-top:1px solid var(--glass-line);position:relative;z-index:4}
@@ -190,19 +194,27 @@ body{
 @media(prefers-reduced-motion:reduce){.sheet{transition:opacity .2s ease;transform:none}}
 .sheet h2{font-size:var(--t2);font-weight:600;text-align:center}
 .sheet .seg{display:flex;margin:14px auto 18px;width:max-content}
-.amount-box{text-align:center;padding:8px 0 14px}
-.amount-box .cur{font-size:24px;color:var(--label3);vertical-align:super}
-.amount-box #amt{font-size:40px;font-weight:700;letter-spacing:-1px}
+.amount-box{display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 0 14px}
+.amount-box .cur{font-size:24px;color:var(--label3);align-self:flex-start;margin-top:3px}
+.amt-in{
+  width:min(260px,84%);height:48px;
+  border:0;outline:0;background:transparent;
+  font-family:inherit;font-size:40px;font-weight:700;letter-spacing:-1px;
+  color:var(--label);text-align:center;caret-color:var(--accent);padding:0;
+}
+.amt-in::selection{background:var(--accent-soft)}
 .pickcat{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;scrollbar-width:none}
 .pickcat::-webkit-scrollbar{display:none}
 .pickcat .pc{flex:0 0 auto;width:60px;text-align:center;padding:8px 4px;border-radius:11px;border:1px solid transparent;cursor:pointer;transition:all .2s var(--ease-spring)}
 .pickcat .pc.on{background:var(--accent-soft);border-color:var(--accent)}
 .pickcat .pc .e{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:17px;margin:0 auto 5px}
 .pickcat .pc span{font-size:11px;color:var(--label2)}
-.keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.keypad button{height:46px;border:1px solid var(--sep);background:var(--surface);border-radius:10px;font-size:18px;font-weight:500;color:var(--label);cursor:pointer;font-family:inherit;transition:transform .1s var(--ease-spring),background .15s}
-.keypad button:active{transform:scale(.94);background:var(--accent-soft)}
-.keypad .ok{background:var(--accent);color:#fff;border-color:transparent;font-size:15px;font-weight:600;grid-row:span 1}
+.sheet-actions{display:flex;gap:10px;margin-top:2px}
+.sheet-actions button{height:42px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;
+  cursor:pointer;transition:transform .1s var(--ease-spring),filter .15s}
+.sheet-actions button:active{transform:scale(.97)}
+.btn-photo{flex:0 0 96px;border:1px solid var(--sep);background:var(--surface);color:var(--label2)}
+.btn-done{flex:1;border:0;background:var(--accent);color:#fff;box-shadow:0 4px 12px rgba(79,91,213,.28)}
 .note-in{width:100%;height:38px;border-radius:9px;border:1px solid var(--sep);background:var(--surface);padding:0 12px;font-size:var(--sub);font-family:inherit;color:var(--label);outline:none;margin-bottom:12px}
 .note-in:focus{border-color:var(--accent)}
 /* toast */
@@ -359,14 +371,12 @@ body{
   <div class="sheet">
     <h2>记一笔</h2>
     <div class="seg" id="segType"><button class="on">支出</button><button>收入</button></div>
-    <div class="amount-box"><span class="cur">¥</span><span id="amt" class="num">0</span></div>
+    <div class="amount-box"><span class="cur">¥</span><input id="amt" class="amt-in num" type="text" inputmode="decimal" maxlength="8" autocomplete="off" spellcheck="false" value="0" aria-label="金额"></div>
     <div class="pickcat" id="pickcat"></div>
     <input class="note-in" id="note" placeholder="备注：这笔钱花在哪里？">
-    <div class="keypad" id="keypad">
-      <button>1</button><button>2</button><button>3</button><button class="del">⌫</button>
-      <button>4</button><button>5</button><button>6</button><button class="clear" style="font-size:14px;color:var(--label2)">清空</button>
-      <button>7</button><button>8</button><button>9</button><button class="ok">完成</button>
-      <button style="grid-column:span 2">0</button><button>.</button><button class="photo" style="font-size:18px">▣</button>
+    <div class="sheet-actions">
+      <button type="button" class="btn-photo" id="btnPhoto">▣ 小票</button>
+      <button type="button" class="btn-done" id="btnDone">完成</button>
     </div>
   </div>
 </div>

@@ -284,9 +284,16 @@
   }
 
   // ---------- 记一笔（Q3/Q4）----------
-  let curAmt = '0', curType = 'out', curCat = 0
-  const amtEl = document.getElementById('amt')
-  const updAmt = () => amtEl.textContent = curAmt || '0'
+  // 金额单一数据源为 #amt.value；把任意输入规范化为合法金额字符串（纯函数）
+  function sanitizeAmt(raw) {
+    let s = String(raw == null ? '' : raw).replace(/[^\d.]/g, '')
+    const dot = s.indexOf('.')
+    if (dot !== -1) s = s.slice(0, dot + 1) + s.slice(dot + 1).replace(/\./g, '')
+    if (s.charAt(0) === '.') s = '0' + s
+    s = s.replace(/^0+(?=\d)/, '')
+    return s.slice(0, 8)
+  }
+  let curType = 'out', curCat = 0
   function renderPick() {
     const list = curType === 'out' ? catsOut : catsIn
     document.getElementById('pickcat').innerHTML = list.map((c, i) =>
@@ -296,23 +303,29 @@
   renderPick()
   document.getElementById('addBtn').onclick = () => {
     document.getElementById('backdrop').classList.add('show')
-    curAmt = '0'; pendingImage = null; updAmt()
-    setTimeout(() => document.getElementById('note').focus(), 300)
+    document.getElementById('amt').value = '0'
+    document.getElementById('note').value = ''
+    pendingImage = null
+    setTimeout(() => {
+      const el = document.getElementById('amt')
+      el.focus(); el.select()   // 全选 '0'，直接输入即替换
+    }, 300)
   }
   document.getElementById('backdrop').onclick = e => { if (e.target.id === 'backdrop') document.getElementById('backdrop').classList.remove('show') }
   document.querySelectorAll('#segType button').forEach(b => b.onclick = () => {
     document.querySelectorAll('#segType button').forEach(x => x.classList.remove('on'))
     b.classList.add('on'); curType = b.textContent === '支出' ? 'out' : 'in'; curCat = 0; renderPick()
   })
-  document.querySelectorAll('#keypad button').forEach(b => b.onclick = async () => {
-    const t = b.textContent
-    if (/^\d$/.test(t)) { curAmt = curAmt === '0' ? t : curAmt + t; if (curAmt.length > 8) curAmt = curAmt.slice(0, 8) }
-    else if (t === '.') { if (!curAmt.includes('.')) curAmt += '.' }
-    else if (t === '⌫') { curAmt = curAmt.slice(0, -1) || '0' }
-    else if (t === '清空') { curAmt = '0' }
-    else if (t === '▣') { await pickImage(); return }
-    else if (t === '完成') { await commit(); return }
-    updAmt()
+  const amtInput = document.getElementById('amt')
+  amtInput.addEventListener('input', () => {
+    const clean = sanitizeAmt(amtInput.value)
+    if (clean !== amtInput.value) amtInput.value = clean   // 回写规范化结果（覆盖粘贴/IME）
+  })
+  amtInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit() }
+  })
+  amtInput.addEventListener('blur', () => {
+    if (amtInput.value === '' || amtInput.value === '.') amtInput.value = '0'
   })
   async function pickImage() {
     if (!IN_TAURI) { toast('小票图片需 Tauri 环境'); return }
@@ -323,8 +336,10 @@
       toast('小票图片已保存到本地')
     } catch (e) { toast('选择图片失败：' + e) }
   }
+  document.getElementById('btnPhoto').onclick = () => pickImage()
+  document.getElementById('btnDone').onclick = () => commit()
   async function commit() {
-    const v = parseFloat(curAmt)
+    const v = parseFloat(sanitizeAmt(document.getElementById('amt').value))
     if (!v || v <= 0) { toast('请输入金额'); return }
     const list = curType === 'out' ? catsOut : catsIn, c = list[curCat]
     const d = new Date()
@@ -335,6 +350,7 @@
     }
     await saveRecord(x)
     document.getElementById('note').value = ''
+    document.getElementById('amt').value = '0'
     document.getElementById('backdrop').classList.remove('show')
     await loadRecords()
     toast((curType === 'out' ? '支出 ' : '收入 ') + money(v) + ' 已记录')
