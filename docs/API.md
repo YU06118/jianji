@@ -32,6 +32,7 @@ const unlisten = await window.__TAURI__.event.listen('updater://progress', ({ pa
 | `set_setting` | `key: string, value: string` | `void` | 写入设置项 |
 | `export_backup` | — | `object` | 导出全量 JSON 备份（内存对象） |
 | `import_backup` | `payload: string` | `number` | 导入 JSON，返回导入条数 |
+| `import_backup_from` | `path: string` | `number` | 从本地 JSON 文件导入（前端 dialog 选路径，Rust 直接读文件，绕过 fs 作用域），返回导入条数 |
 | `save_backup_to` | `path: string` | `void` | 把备份写到指定文件路径 |
 | `save_image` | `srcPath: string, name: string` | `string` | 保存小票图片，返回应用内路径 |
 | `data_dir` | — | `string` | 返回 `%APPDATA%\com.jianji.ledger` 实际路径 |
@@ -49,12 +50,14 @@ const unlisten = await window.__TAURI__.event.listen('updater://progress', ({ pa
 | `remind_daily_enabled` | `'1'` / `'0'` | `'1'` | 每日记账提醒开关 |
 | `remind_daily_time` | `'HH:MM'` | `'21:00'` | 每日提醒时间（前端设置，Rust 定时器读取） |
 | `remind_daily_last_fired` | `'YYYY-MM-DD'` | — | 当日已提醒标记，Rust 侧写入用于去重 |
+| `theme_mode` | `'system'` / `'light'` / `'dark'` | `'system'` | 桌面端外观：跟随系统 / 浅色 / 深色 |
 
 **注意事项**
 - 检查更新必须先于下载安装调用，否则返回错误"请先执行检查更新"。
 - WebView2 下原生 `confirm()` / `alert()` / `prompt()` 静默失效，所有确认与输入框必须用自绘模态框（见 `frontend/index.html` 的 `#upd-modal` / `#confirm-modal`）。
 - 每日提醒由 Rust 独立线程每 15 秒轮询 `remind_daily_*` 设置，到点经 `tauri-plugin-notification` 弹系统通知；**仅应用运行时有效**，关闭应用后不提醒。
 - 数据文件：`jianji.db`（SQLite）+ `images\`，均在 `data_dir` 返回的目录。
+- 小票查看：图片经 `window.__TAURI__.core.convertFileSrc(data_dir + '\\images\\' + image)` 转 URL 显示；需 `tauri.conf.json` 开启 `assetProtocol`（scope `$APPDATA/**`）且 `Cargo.toml` 的 tauri 依赖启用 `protocol-asset` feature。
 
 ## 二、小程序端：`utils/store.js`（数据层）
 

@@ -86,14 +86,26 @@ fn export_backup(state: tauri::State<'_, AppState>) -> Result<serde_json::Value,
     }))
 }
 
-#[tauri::command]
-fn import_backup(state: tauri::State<'_, AppState>, payload: String) -> Result<usize, String> {
+/// 解析备份 JSON 并全量替换（导入命令共用）
+fn import_payload(state: &AppState, payload: &str) -> Result<usize, String> {
     #[derive(serde::Deserialize)]
     struct Backup { records: Vec<Record>, #[serde(default)] categories: Vec<Category> }
-    let b: Backup = serde_json::from_str(&payload).map_err(|e| e.to_string())?;
+    let b: Backup = serde_json::from_str(payload).map_err(|e| format!("备份格式无效：{e}"))?;
     let mut conn = state.conn.lock().map_err(|e| e.to_string())?;
     db::replace_all(&mut conn, &b.records, &b.categories).map_err(|e| e.to_string())?;
     Ok(b.records.len())
+}
+
+#[tauri::command]
+fn import_backup(state: tauri::State<'_, AppState>, payload: String) -> Result<usize, String> {
+    import_payload(state.inner(), &payload)
+}
+
+/// 从文件路径导入（前端经 dialog 选文件后传路径；避免 fs 插件作用域限制）
+#[tauri::command]
+fn import_backup_from(state: tauri::State<'_, AppState>, path: String) -> Result<usize, String> {
+    let payload = fs::read_to_string(&path).map_err(|e| format!("读取备份文件失败：{e}"))?;
+    import_payload(state.inner(), &payload)
 }
 
 #[tauri::command]
@@ -258,7 +270,7 @@ fn main() {
             list_records, save_record, trash_record, purge_trash,
             list_categories, save_category, delete_category,
             get_setting, set_setting,
-            export_backup, import_backup, save_backup_to,
+            export_backup, import_backup, import_backup_from, save_backup_to,
             save_image, data_dir,
             updater_check, updater_download_install
         ])

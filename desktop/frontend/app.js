@@ -89,6 +89,10 @@
   // ---------- 数据层 ----------
   let txs = []          // UI 形态：{id,ic,bg,n,note,amt,out,t,ts,date,cat,image,deleted,_i}
   let pendingImage = null
+  let activeFilter = 'all'   // 明细筛选：all | expense | income | month | range
+  let searchKw = ''          // 备注关键词，与 chips 叠加
+  let viewYM = new Date().toISOString().slice(0, 7)   // 概览选中月份
+  let appDir = ''            // Tauri 数据目录缓存（小票查看用）
 
   function fromRecord(r) {
     const d = new Date(r.ts || Date.now())
@@ -158,7 +162,7 @@
   function txRow(x, del) {
     return `<div class="tx"><div class="ic" style="background:${x.bg}">${x.ic}</div>
       <div class="meta"><b>${esc(x.n)}</b><span>${x.t} · ${esc(x.note)}</span></div>
-      ${x.image ? '<div class="thumb" title="含小票图片">▧</div>' : ''}
+      ${x.image ? `<button class="thumb" title="查看小票" data-id="${x.id}">▧</button>` : ''}
       <div class="money ${x.out ? 'out' : 'in'}">${x.out ? '−' : '+'} ${money(x.amt)}</div>
       ${del ? `<button class="edit" title="编辑" data-id="${x.id}">✎</button><button class="del" title="删除" data-id="${x.id}">✕</button>` : ''}</div>`
   }
@@ -171,34 +175,82 @@
     ).join('')
   }
   let trashView = false
+  // 明细筛选：类型 / 本月 / 金额区间，与关键词搜索叠加
+  function applyFilters(list) {
+    const kw = searchKw.trim().toLowerCase()
+    const nowYM = new Date().toISOString().slice(0, 7)
+    return list.filter(x => {
+      if (kw && (String(x.note || '') + ' ' + String(x.n || '')).toLowerCase().indexOf(kw) < 0) return false
+      if (activeFilter === 'expense' && !x.out) return false
+      if (activeFilter === 'income' && x.out) return false
+      if (activeFilter === 'month' && !(x.date || '').startsWith(nowYM)) return false
+      if (activeFilter === 'range') {
+        const c = toCents(x.amt)
+        if (c < 5000 || c > 50000) return false   // ¥50 – ¥500
+      }
+      return true
+    })
+  }
+  function shiftMonth(ym, delta) {
+    const d = new Date(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1 + delta, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  }
+  function monthText(ym) { return ym.slice(0, 4) + '年' + Number(ym.slice(5, 7)) + '月' }
+  function paintMonth() {
+    const t = monthText(viewYM)
+    const el = document.getElementById('monthLabel'); if (el) el.textContent = t
+    const sub = document.getElementById('ovSub'); if (sub) sub.textContent = t + ' · 你的收支一览'
+    const ds = document.getElementById('donutSub'); if (ds) ds.textContent = Number(viewYM.slice(5, 7)) + '月占比'
+  }
+  function pctChange(cur, prev) { return prev > 0 ? (cur - prev) / prev * 100 : null }
+
   function render() {
     const live = txs.filter(x => !x.deleted)
     txs.forEach((x, i) => x._i = i)
     document.getElementById('recentList').innerHTML = groupByDate(live.slice(0, 5), false)
-    document.getElementById('fullList').innerHTML = groupByDate(trashView ? txs.filter(x => x.deleted) : live, true)
-    document.getElementById('txCount').textContent = live.length
+    const base = trashView ? txs.filter(x => x.deleted) : live
+    const shown = applyFilters(base)
+    document.getElementById('fullList').innerHTML = groupByDate(shown, true)
+    document.getElementById('txCount').textContent = shown.length
     const et = document.getElementById('emptyTrash')
     if (et) et.textContent = `回收站（${txs.length - live.length}）`
-    // 汇总
-    const inc = sumYuan(live.filter(x => !x.out).map(x => x.amt))
-    const exp = sumYuan(live.filter(x => x.out).map(x => x.amt))
+    paintMonth()
+    // 汇总：按工具栏选中月份（不再是全量）
+    const monthLive = live.filter(x => (x.date || '').startsWith(viewYM))
+    const prevLive = live.filter(x => (x.date || '').startsWith(shiftMonth(viewYM, -1)))
+    const inc = sumYuan(monthLive.filter(x => !x.out).map(x => x.amt))
+    const exp = sumYuan(monthLive.filter(x => x.out).map(x => x.amt))
+    const pInc = sumYuan(prevLive.filter(x => !x.out).map(x => x.amt))
+    const pExp = sumYuan(prevLive.filter(x => x.out).map(x => x.amt))
     const cards = document.querySelectorAll('#v-overview .card .v')
     if (cards[0]) cards[0].innerHTML = `<span class="cur">¥</span>${exp.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
     if (cards[1]) cards[1].innerHTML = `<span class="cur">¥</span>${inc.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
     if (cards[2]) cards[2].innerHTML = `<span class="cur">¥</span>${(inc - exp).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`
-    // 支出分类环形图（真实数据）
-    renderDonut(live.filter(x => x.out))
-    // 近 12 个月收支趋势（真实数据）
+    // 卡片副文字：真实环比与储蓄率（替换写死假数据）
+    const isCur = viewYM === new Date().toISOString().slice(0, 7)
+    const ml = isCur ? '本月' : Number(viewYM.slice(5, 7)) + '月'
+    const ks = document.querySelectorAll('#v-overview .stats .card .k')
+    if (ks[0]) ks[0].textContent = ml + '支出'
+    if (ks[1]) ks[1].textContent = ml + '收入'
+    if (ks[2]) ks[2].textContent = ml + '结余'
+    const ds = document.querySelectorAll('#v-overview .stats .card .d')
+    const dExp = pctChange(exp, pExp), dInc = pctChange(inc, pInc)
+    if (ds[0]) ds[0].innerHTML = ml + '环比 ' + (dExp === null ? '<b>—</b>' : `<b class="${dExp > 0 ? 'up' : 'down'}">${dExp > 0 ? '↑' : '↓'} ${Math.abs(dExp).toFixed(1)}%</b>`)
+    if (ds[1]) ds[1].innerHTML = ml + '环比 ' + (dInc === null ? '<b>—</b>' : `<b class="${dInc >= 0 ? 'down' : 'up'}">${dInc >= 0 ? '↑' : '↓'} ${Math.abs(dInc).toFixed(1)}%</b>`)
+    if (ds[2]) ds[2].textContent = '储蓄率 ' + (inc > 0 ? Math.round((inc - exp) / inc * 100) + '%' : '—')
+    // 支出分类环形图（选中月份真实数据）
+    renderDonut(monthLive.filter(x => x.out))
+    // 近 12 个月收支趋势（以选中月份为终点）
     renderTrend(live)
   }
 
   function renderTrend(list) {
     const svg = document.querySelector('#v-overview .chart-svg')
     if (!svg) return
-    const now = new Date()
+    const baseY = Number(viewYM.slice(0, 4)), baseM = Number(viewYM.slice(5, 7))
     const months = []
     for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const d = new Date(baseY, baseM - 1 - i, 1)
       months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
     }
     const buckets = {}
@@ -272,25 +324,25 @@
     document.querySelectorAll('#segTime button').forEach(x => x.classList.remove('on'))
     b.classList.add('on'); renderStats()
   })
-  // 检索 chips（Q11）
-  let activeFilter = '全部'
+  // 检索 chips（Q11）：类型 / 本月 / 金额区间
   document.querySelectorAll('.chips .chip').forEach(c => c.onclick = () => {
     document.querySelectorAll('.chips .chip').forEach(x => x.classList.remove('on'))
-    c.classList.add('on'); activeFilter = c.textContent
-    let list = txs
-    if (activeFilter === '支出') list = txs.filter(x => x.out)
-    if (activeFilter === '收入') list = txs.filter(x => !x.out)
-    document.getElementById('fullList').innerHTML = groupByDate(list, true)
+    c.classList.add('on')
+    activeFilter = c.dataset.f || 'all'
+    render()
   })
   document.querySelector('.search').onclick = async () => {
     const kw = await askConfirm('搜索记录', '输入备注关键词（留空显示全部）：', { input: '备注关键词', okText: '搜索' })
     if (kw === null) return
-    const list = kw ? txs.filter(x => (x.note || '').toLowerCase().includes(kw.toLowerCase())) : txs
-    document.getElementById('fullList').innerHTML = groupByDate(list, true)
+    searchKw = kw.trim()
     document.querySelector('.nav button[data-v="list"]').click()
+    render()
+    toast(searchKw ? '搜索：' + searchKw : '已显示全部记录')
   }
-  // fullList 统一事件委托（编辑/删除/恢复），innerHTML 重渲染不丢事件
+  // fullList 统一事件委托（编辑/删除/恢复/小票），innerHTML 重渲染不丢事件
   document.getElementById('fullList').addEventListener('click', async e => {
+    const thumb = e.target.closest('.thumb')
+    if (thumb) { openReceipt(thumb.dataset.id); return }
     const ed = e.target.closest('.edit')
     if (ed) {
       const rec = txs.find(x => x.id === ed.dataset.id)
@@ -526,11 +578,47 @@
     try {
       const p = await window.__TAURI__.dialog.open({ multiple: false, filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })
       if (!p) return
-      pendingImage = await invoke('save_image', { srcPath: p, name: 'receipt_' + Date.now() + '.png' })
+      // 保留原扩展名（此前一律存成 .png，会导致 jpg 小票查看异常）
+      const ext = (String(p).split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png'
+      pendingImage = await invoke('save_image', { srcPath: p, name: 'receipt_' + Date.now() + '.' + ext })
       toast('小票图片已保存到本地')
     } catch (e) { toast('选择图片失败：' + e) }
   }
   document.getElementById('btnPhoto').onclick = () => pickImage()
+
+  // 小票查看：图片存于 data_dir/images/，经 asset 协议转为可显示 URL
+  async function ensureAppDir() {
+    if (!IN_TAURI) return ''
+    if (!appDir) { try { appDir = await invoke('data_dir') } catch (e) { appDir = '' } }
+    return appDir
+  }
+  async function openReceipt(id) {
+    if (!IN_TAURI) { toast('小票查看需 Tauri 环境'); return }
+    const rec = txs.find(x => x.id === id)
+    if (!rec || !rec.image) return
+    const dir = await ensureAppDir()
+    if (!dir) { toast('无法定位小票目录'); return }
+    const img = document.getElementById('receipt-img')
+    const mask = document.getElementById('receipt-modal')
+    if (!img || !mask) return
+    const full = dir.replace(/[\\/]+$/, '') + '\\images\\' + rec.image
+    img.onerror = () => toast('小票文件不存在或已移动')
+    img.src = window.__TAURI__.core.convertFileSrc(full)
+    mask.classList.add('show')
+  }
+  const receiptMask = document.getElementById('receipt-modal')
+  if (receiptMask) {
+    const close = () => receiptMask.classList.remove('show')
+    const btn = document.getElementById('receipt-close')
+    if (btn) btn.onclick = close
+    receiptMask.onclick = e => { if (e.target === receiptMask) close() }
+  }
+  // 概览「最近记录」也支持点缩略图查看
+  const recentEl = document.getElementById('recentList')
+  if (recentEl) recentEl.addEventListener('click', e => {
+    const t = e.target.closest('.thumb')
+    if (t) openReceipt(t.dataset.id)
+  })
   document.getElementById('btnDone').onclick = () => commit()
   document.getElementById('btnEditDel').onclick = async () => {
     if (!editingId) return
@@ -589,11 +677,72 @@
     })
     return rows.join('\r\n')
   }
-  document.querySelectorAll('.setrow').forEach(row => {
-    if (row.textContent.includes('导出数据')) row.querySelector('.link').onclick = async () => {
-      await downloadText('简记-流水.csv', buildCSV(), 'text/csv;charset=utf-8'); toast('CSV 已导出')
+  // JSON 备份 / 导入（P1）：桌面端走 Rust 命令，浏览器降级走 Blob / FileReader
+  function buildBackup() {
+    return JSON.stringify({
+      app: '简记', version: 1, exportedAt: new Date().toISOString(),
+      records: txs.map(toRecord),
+      categories: catsOut.concat(catsIn).map(toRustCat),
+      settings: {}
+    }, null, 2)
+  }
+  async function exportBackup() {
+    const name = '简记-备份-' + new Date().toISOString().slice(0, 10) + '.json'
+    if (!IN_TAURI) {
+      downloadText(name, buildBackup(), 'application/json')
+      toast('JSON 备份已下载')
+      return
     }
-  })
+    try {
+      const path = await window.__TAURI__.dialog.save({ defaultPath: name, filters: [{ name: 'JSON 备份', extensions: ['json'] }] })
+      if (!path) return
+      await invoke('save_backup_to', { path })
+      toast('JSON 备份已保存')
+    } catch (e) { toast('备份失败：' + (e && e.message || e)) }
+  }
+  async function importBackup() {
+    const ok = await askConfirm('导入 JSON 备份', '导入会覆盖当前全部记录与自定义分类，且不可撤销。确定继续？', { danger: true, okText: '选择文件' })
+    if (!ok) return
+    if (!IN_TAURI) {
+      // 浏览器降级：隐藏 file input 读取本地 JSON
+      const input = document.createElement('input')
+      input.type = 'file'; input.accept = '.json,application/json'
+      input.onchange = () => {
+        const f = input.files && input.files[0]
+        if (!f) return
+        const reader = new FileReader()
+        reader.onload = () => {
+          try {
+            const obj = JSON.parse(String(reader.result || ''))
+            if (!obj || !Array.isArray(obj.records)) throw new Error('缺少 records 字段')
+            LS.set(obj.records)
+            loadRecords()
+            toast(`已导入 ${obj.records.length} 条记录`)
+          } catch (e) { toast('导入失败：' + (e && e.message || e)) }
+        }
+        reader.readAsText(f)
+      }
+      input.click()
+      return
+    }
+    try {
+      const p = await window.__TAURI__.dialog.open({ multiple: false, filters: [{ name: 'JSON 备份', extensions: ['json'] }] })
+      if (!p) return
+      const path = Array.isArray(p) ? p[0] : p
+      const n = await invoke('import_backup_from', { path })
+      await loadCategories()
+      await loadRecords()
+      toast(`已导入 ${n} 条记录`)
+    } catch (e) { toast('导入失败：' + (e && e.message || e)) }
+  }
+  const exportCsvEl = document.getElementById('export-csv')
+  if (exportCsvEl) exportCsvEl.onclick = async () => {
+    await downloadText('简记-流水.csv', buildCSV(), 'text/csv;charset=utf-8'); toast('CSV 已导出')
+  }
+  const exportJsonEl = document.getElementById('export-json')
+  if (exportJsonEl) exportJsonEl.onclick = exportBackup
+  const importJsonEl = document.getElementById('import-json')
+  if (importJsonEl) importJsonEl.onclick = importBackup
 
   // toast
   let tt
@@ -609,11 +758,13 @@
     if (!IN_TAURI) {
       ;['row-upd-check', 'row-upd-auto', 'row-upd-src'].forEach(id => { if ($(id)) $(id).style.display = 'none' })
       if ($('upd-curver')) $('upd-curver').textContent = '浏览器预览模式'
+      if ($('sideVer')) $('sideVer').textContent = '预览模式'
       return
     }
     try {
       const ver = await window.__TAURI__.app.getVersion()
       if ($('upd-version')) $('upd-version').textContent = 'v' + ver
+      if ($('sideVer')) $('sideVer').textContent = 'v' + ver
     } catch (e) { /* 版本显示失败不阻塞 */ }
 
     // 偏好持久化：复用顶层 getSet/setSet（setSet 失败静默）
@@ -732,9 +883,45 @@
     })
   }
 
+  // ---------- 外观（跟随系统 / 浅色 / 深色；手动档持久化）----------
+  async function initAppearance() {
+    const LABEL = { system: '跟随系统', light: '浅色', dark: '深色' }
+    const ORDER = ['system', 'light', 'dark']
+    const el = document.getElementById('theme-mode'), desc = document.getElementById('theme-desc')
+    const saved = await getSet('theme_mode')
+    let cur = ORDER.indexOf(saved) >= 0 ? saved : 'system'
+    const apply = () => {
+      const root = document.documentElement
+      root.classList.toggle('theme-dark', cur === 'dark')
+      root.classList.toggle('theme-light', cur === 'light')
+      if (el) el.textContent = LABEL[cur] + ' ›'
+      if (desc) desc.textContent = cur === 'system' ? '深浅色跟随系统' : '已固定为' + LABEL[cur]
+    }
+    apply()
+    if (el) el.onclick = () => {
+      cur = ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length]
+      apply()
+      setSet('theme_mode', cur).catch(() => {})
+      toast('外观：' + LABEL[cur])
+    }
+  }
+
+  // ---------- 月份切换（概览三卡 / 环形图 / 趋势终点）----------
+  const monthPill = document.getElementById('monthPill')
+  if (monthPill) monthPill.onclick = async () => {
+    const v = await askConfirm('切换月份', '输入要查看的月份（格式 YYYY-MM）：', { input: '如 2026-11', inputValue: viewYM, okText: '查看' })
+    if (v === null) return
+    const ym = String(v).trim()
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(ym)) { toast('月份格式应为 YYYY-MM'); return }
+    viewYM = ym
+    render()
+    toast('已切换到 ' + monthText(ym))
+  }
+
   // 启动
   loadRecords()
   loadCategories()
   initReminder()
   initUpdater()
+  initAppearance()
 })()
