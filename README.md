@@ -12,7 +12,7 @@
 | ★ 主端 | 微信小程序 | [jianji-miniprogram](https://github.com/YU06118/jianji-miniprogram) | 已完成，持续迭代 | 微信开发者工具导入；AppID `wx7e44ad0c1a857e87` |
 | 2 | Windows 桌面端 | [jianji-windows](https://github.com/YU06118/jianji-windows) | 已完成 | [v0.1.8 安装包](https://github.com/YU06118/jianji-android/releases/latest)（随 jianji-android Releases 保留）；新发版将发布于 jianji-windows |
 | 3 | macOS 桌面端 | [jianji-macos](https://github.com/YU06118/jianji-macos) | 已完成 | [v0.1.8 Release](https://github.com/YU06118/jianji-macos/releases/latest)：Intel（x64）+ Apple Silicon（aarch64）DMG |
-| 4 | Android | [jianji-android](https://github.com/YU06118/jianji-android) | v0.1.0 · debug APK | [arm64 APK 下载](https://github.com/YU06118/jianji-android/releases/tag/android-v0.1.0)（允许安装未知来源）；构建说明见仓库 docs |
+| 4 | Android | [jianji-android](https://github.com/YU06118/jianji-android) | v0.1.1 · debug APK | [arm64 APK 下载](https://github.com/YU06118/jianji-android/releases/tag/android-v0.1.1)（允许安装未知来源）；构建说明见仓库 docs |
 
 ## 文档直达
 
@@ -44,7 +44,7 @@
 | Windows | v0.1.8 | [jianji-android Releases](https://github.com/YU06118/jianji-android/releases)（历史包随原仓库保留） |
 | macOS | v0.1.8 | [jianji-macos Releases](https://github.com/YU06118/jianji-macos/releases) |
 | 小程序 | v1.0.0（未提审） | 微信平台（提审流程见小程序仓库 README） |
-| Android | v0.1.0（debug） | [jianji-android Releases · android-v0.1.0](https://github.com/YU06118/jianji-android/releases/tag/android-v0.1.0) |
+| Android | v0.1.1（debug） | [jianji-android Releases · android-v0.1.1](https://github.com/YU06118/jianji-android/releases/tag/android-v0.1.1) |
 
 ---
 
